@@ -22,6 +22,10 @@ The whole tool is a single percentage that changes color as a limit gets closer.
 
 Click it for the full breakdown: your current 5-hour window and this week's window, each with a progress bar and a reset time. If the data goes stale, the number grays out — so you can always tell whether you're looking at something current.
 
+![ClaudeGauge in its warning and critical states — the gauge and dropdown turn amber at 75%, red at 90%, surfacing the window that's biting](./docs/screenshots/states.png)
+
+<sub>Whichever window is about to bite is the one that surfaces — amber for the 5-hour session, red for the weekly wall — each with its reset countdown.</sub>
+
 ## Safe to leave running
 
 A usage gauge has to read your account, so *how* it does that matters more than any feature:

@@ -159,12 +159,23 @@
   /* one number, three colors */
   .threecolors{max-width:720px;margin:24px auto 0;text-align:left}
   .tc-lead{font-size:14.5px;color:var(--ink-soft);line-height:1.6;margin:0 auto 18px;max-width:660px;text-align:center}
-  .tc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
-  @media(max-width:680px){.tc-grid{grid-template-columns:1fr}}
-  .tc{border:1px solid var(--line);border-radius:13px;padding:17px;background:var(--card)}
-  .tc .mbg{justify-content:center;min-width:86px;margin-bottom:11px;
-    background:linear-gradient(140deg,#eef2f8,#f6f0ea);border:1px solid var(--line)}
-  .tc p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.55}
+  .states2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:4px}
+  @media(max-width:680px){.states2{grid-template-columns:1fr}}
+  .scene{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    background:linear-gradient(150deg,#e9eef7,#f4ecf2 55%,#f7f1ea);box-shadow:0 16px 42px rgba(40,36,28,.10)}
+  .mini-bar{position:relative;z-index:3;height:29px;display:flex;align-items:center;justify-content:flex-end;
+    gap:10px;padding:0 11px;background:rgba(250,249,247,.82);
+    backdrop-filter:saturate(180%) blur(12px);-webkit-backdrop-filter:saturate(180%) blur(12px);
+    border-bottom:1px solid rgba(0,0,0,.06);font-size:12.5px;color:#34343a}
+  .mini-bar .sysicon{opacity:.55}
+  .mini-bar .clock{opacity:.82;font-variant-numeric:tabular-nums}
+  .mini-bar .mbg{padding:2px 6px}
+  .mini-stage{position:relative;height:300px}
+  @media(max-width:680px){.mini-stage{height:auto;padding-bottom:12px}}
+  .mini-stage .dropdown{position:absolute;top:9px;right:11px;width:240px;box-shadow:0 18px 44px rgba(40,36,28,.22)}
+  @media(max-width:680px){.mini-stage .dropdown{position:static;width:auto;margin:10px 11px 0;box-shadow:0 12px 30px rgba(40,36,28,.12)}}
+  .dd-used.warn{color:var(--warn)}.dd-used.crit{color:var(--crit)}
+  .scene-cap{margin:11px 2px 0;font-size:13px;color:var(--ink-soft);line-height:1.45;text-align:center}
   .leg .txt b{color:var(--ink);font-weight:600}
 
   /* ---------- section scaffold ---------- */
@@ -343,20 +354,67 @@
 
     <!-- one number, three colors -->
     <div class="threecolors">
-      <p class="tc-lead"><b>One number, three colors — it follows your intuition.</b> Whichever limit is about to bite is the one that shows up. When you're fine you just see your current session; the weekly window only steps in when it's the one to worry about.</p>
-      <div class="tc-grid">
-        <div class="tc">
-          <span class="mbg"><svg class="dial"><use href="#dial"/></svg> 49%</span>
-          <p><b>Plenty.</b> Session's fine, the week stays hidden — near-black and out of your way.</p>
+      <p class="tc-lead"><b>One number, three colors — it follows your intuition.</b> When you're fine you just see one number (above). As a window fills up it surfaces on its own — amber, then red — with the countdown you'd want. Here's the real thing:</p>
+      <div class="states2">
+
+        <div>
+          <div class="scene">
+            <div class="mini-bar">
+              <span class="mbg warn"><svg class="dial"><use href="#dial"/></svg> 82% 38m</span>
+              <svg class="sysicon" width="22" height="13" viewBox="0 0 26 14" fill="none"><rect x="1" y="2.5" width="20" height="9" rx="2.6" stroke="currentColor" stroke-width="1.3"/><rect x="2.8" y="4.3" width="13" height="5.4" rx="1.2" fill="currentColor"/><path d="M23.2 5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <svg class="sysicon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11a12 12 0 0 1 16 0M7.5 14.5a7 7 0 0 1 9 0"/><circle cx="12" cy="18" r="1.1" fill="currentColor" stroke="none"/></svg>
+              <span class="clock">Sat 21:04</span>
+            </div>
+            <div class="mini-stage">
+              <div class="dropdown">
+                <div class="dd-head"><svg class="dial"><use href="#dial"/></svg> Claude Code usage</div>
+                <div class="dd-row">
+                  <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Current 5-hour · session</div>
+                  <div class="dd-used warn">82%<span class="muted"> used&nbsp;·&nbsp;18% left</span></div>
+                  <div class="gaugebar warn">████████░░</div>
+                  <div class="dd-reset">resets in 38m</div>
+                </div>
+                <div class="dd-row">
+                  <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg> This week · 7-day</div>
+                  <div class="dd-used">41%<span class="muted"> used&nbsp;·&nbsp;59% left</span></div>
+                  <div class="gaugebar">████░░░░░░</div>
+                  <div class="dd-reset">resets in 5d</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="scene-cap"><b>Heads up (≥75%)</b> — the 5-hour window is the one biting.</p>
         </div>
-        <div class="tc">
-          <span class="mbg warn"><svg class="dial"><use href="#dial"/></svg> 82% 38m</span>
-          <p><b>Heads up.</b> The biting window turns amber, with its reset countdown.</p>
+
+        <div>
+          <div class="scene">
+            <div class="mini-bar">
+              <span class="mbg crit"><svg class="dial"><use href="#dial"/></svg> W93% 2d</span>
+              <svg class="sysicon" width="22" height="13" viewBox="0 0 26 14" fill="none"><rect x="1" y="2.5" width="20" height="9" rx="2.6" stroke="currentColor" stroke-width="1.3"/><rect x="2.8" y="4.3" width="13" height="5.4" rx="1.2" fill="currentColor"/><path d="M23.2 5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <svg class="sysicon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11a12 12 0 0 1 16 0M7.5 14.5a7 7 0 0 1 9 0"/><circle cx="12" cy="18" r="1.1" fill="currentColor" stroke="none"/></svg>
+              <span class="clock">Sat 21:04</span>
+            </div>
+            <div class="mini-stage">
+              <div class="dropdown">
+                <div class="dd-head"><svg class="dial"><use href="#dial"/></svg> Claude Code usage</div>
+                <div class="dd-row">
+                  <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Current 5-hour · session</div>
+                  <div class="dd-used">58%<span class="muted"> used&nbsp;·&nbsp;42% left</span></div>
+                  <div class="gaugebar">██████░░░░</div>
+                  <div class="dd-reset">resets in 1h20m</div>
+                </div>
+                <div class="dd-row">
+                  <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg> This week · 7-day</div>
+                  <div class="dd-used crit">93%<span class="muted"> used&nbsp;·&nbsp;7% left</span></div>
+                  <div class="gaugebar crit">█████████░</div>
+                  <div class="dd-reset">resets in 2d</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="scene-cap"><b>Critical (≥90%)</b> — the weekly wall preempts; it's the hard limit.</p>
         </div>
-        <div class="tc">
-          <span class="mbg crit"><svg class="dial"><use href="#dial"/></svg> W93% 2d</span>
-          <p><b>Critical.</b> Red — and the weekly wall wins ties, because that's the hard limit.</p>
-        </div>
+
       </div>
     </div>
   </div>
