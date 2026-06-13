@@ -82,12 +82,10 @@
 
   /* ---------- hero ---------- */
   .hero{padding:88px 0 40px;text-align:center}
-  .badge{
-    display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);
-    background:var(--card);border:1px solid var(--line);border-radius:999px;
-    padding:6px 14px;margin-bottom:26px;font-weight:500;
-  }
-  .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(58,143,99,.12)}
+  .hero-checks{display:flex;flex-wrap:wrap;gap:9px 18px;justify-content:center;align-items:center;margin:0 auto 18px;max-width:640px}
+  .hero-checks span{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:550;color:var(--ink-soft)}
+  .hero-checks svg{width:17px;height:17px;flex:none}
+  .hero-kicker{font-size:14.5px;color:var(--ink-faint);margin:0 auto 30px}
   h1{
     font-size:clamp(38px,6.4vw,68px);line-height:1.02;letter-spacing:-.035em;
     font-weight:700;margin:0 0 20px;
@@ -97,7 +95,7 @@
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
   .sub{
-    font-size:clamp(17px,2.2vw,21px);color:var(--ink-soft);max-width:660px;margin:0 auto 34px;
+    font-size:clamp(17px,2.2vw,21px);color:var(--ink-soft);max-width:660px;margin:0 auto 16px;
     line-height:1.55;
   }
   .hero-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
@@ -110,7 +108,6 @@
   .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.22)}
   .btn-ghost{background:var(--card);color:var(--ink);border-color:var(--line)}
   .btn-ghost:hover{transform:translateY(-2px);border-color:#d8d4cb}
-  .hero-note{font-size:13px;color:var(--ink-faint)}
 
   /* ---------- mock menu bar demo ---------- */
   .demo{position:relative;margin:56px auto 0;max-width:720px;border:1px solid var(--line);
@@ -181,10 +178,11 @@
   .mini-bar .sysicon{opacity:.55}
   .mini-bar .clock{opacity:.82;font-variant-numeric:tabular-nums}
   .mini-bar .mbg{padding:2px 6px}
-  .mini-stage{position:relative;height:344px}
-  @media(max-width:680px){.mini-stage{height:auto;padding-bottom:12px}}
-  .mini-stage .dropdown{position:absolute;top:9px;right:11px;width:240px;box-shadow:0 18px 44px rgba(40,36,28,.22)}
-  @media(max-width:680px){.mini-stage .dropdown{position:static;width:auto;margin:10px 11px 0;box-shadow:0 12px 30px rgba(40,36,28,.12)}}
+  .mini-stage{height:286px}
+  @media(max-width:680px){.mini-stage{height:264px}}
+  /* state-scene dropdown hangs from the (selected) gauge, exactly like the hero */
+  .mini-bar .popover .dropdown{width:212px;box-shadow:0 18px 44px rgba(40,36,28,.22)}
+  @media(max-width:680px){.mini-bar .popover{position:absolute}.mini-bar .popover .dropdown{width:min(212px,76vw)}}
   .dd-used.warn{color:var(--warn)}.dd-used.crit{color:var(--crit)}
   .scene-cap{margin:11px 2px 0;font-size:13px;color:var(--ink-soft);line-height:1.45;text-align:center}
   .leg .txt b{color:var(--ink);font-weight:600}
@@ -200,7 +198,7 @@
   @media(max-width:880px){.feat-grid{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:560px){.feat-grid{grid-template-columns:1fr}}
   .feat{
-    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
     padding:26px 24px;transition:transform .18s,box-shadow .18s,border-color .18s;
   }
   .feat:hover{transform:translateY(-3px);box-shadow:0 14px 36px rgba(40,36,28,.08);border-color:#ded9cf}
@@ -260,8 +258,9 @@
   .layer p code{font-family:var(--mono);font-size:12px;background:#f3f0e9;padding:1px 5px;border-radius:5px;color:var(--ink)}
   .opt-badge{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ok);background:rgba(58,143,99,.1);padding:2px 7px;border-radius:5px;margin-left:6px}
 
+  /* ---------- white band (alternating section bg) ---------- */
+  .band{background:#fff;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
   /* ---------- privacy ---------- */
-  .privacy{background:#fff;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
   .priv-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:840px;margin:0 auto}
   @media(max-width:640px){.priv-grid{grid-template-columns:1fr}}
   .priv{display:flex;gap:14px;align-items:flex-start;padding:20px 22px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
@@ -304,6 +303,10 @@
     <path d="M12 17.5 16.2 9.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
     <circle cx="12" cy="17.5" r="2" fill="currentColor"/>
   </symbol>
+  <symbol id="chk" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" fill="#e7f1ec"/>
+    <path d="m7.8 12.3 2.7 2.7L16.2 9.2" fill="none" stroke="#3a8f63" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
 </svg>
 
 <nav>
@@ -324,12 +327,17 @@
 <!-- ============ HERO ============ -->
 <header class="hero">
   <div class="wrap">
-    <span class="badge"><span class="dot"></span> <span class="en">macOS menu bar · Claude Code Pro / Max</span><span class="zh">macOS 菜单栏 · Claude Code Pro / Max</span></span>
     <h1><span class="en">Your Claude Code usage,<br><span class="grad">live in the menu bar.</span></span><span class="zh">你的 Claude Code 用量，<br><span class="grad">常驻菜单栏。</span></span></h1>
     <p class="sub">
-      <span class="en">A tiny macOS gauge that shows how much of your Claude Code quota you've used —
-      reading only the official numbers, never a line of your conversations or code. Free, open source, zero quota cost.</span><span class="zh">一个小巧的 macOS 表盘，瞄一眼就知道 Claude Code 额度用了多少——只读官方用量数字，绝不读你的对话和代码一个字。免费、开源、零额度消耗。</span>
+      <span class="en">A tiny macOS gauge — one glance tells you how much of your Claude Code quota you've used.</span><span class="zh">一个小巧的 macOS 表盘，瞄一眼就知道 Claude Code 额度用了多少。</span>
     </p>
+    <div class="hero-checks">
+      <span><svg><use href="#chk"/></svg> <span class="en">Tiny</span><span class="zh">小巧</span></span>
+      <span><svg><use href="#chk"/></svg> <span class="en">Private</span><span class="zh">安全</span></span>
+      <span><svg><use href="#chk"/></svg> <span class="en">Zero quota cost</span><span class="zh">零额度消耗</span></span>
+      <span><svg><use href="#chk"/></svg> <span class="en">Free &amp; open source</span><span class="zh">免费开源</span></span>
+    </div>
+    <p class="hero-kicker"><span class="en">In short — it's just a very simple little tool.</span><span class="zh">总之，它只是一个非常简单的小工具。</span></p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="#install">
         <svg width="16" height="16"><use href="#dial"/></svg> <span class="en">Get started</span><span class="zh">开始使用</span>
@@ -339,8 +347,6 @@
         <span class="en">View on GitHub</span><span class="zh">在 GitHub 上查看</span>
       </a>
     </div>
-    <p class="hero-note"><span class="en">MIT open source · most usage trackers read your chat logs to count usage — this one never touches them</span><span class="zh">MIT 开源 · 多数用量工具靠翻你的对话记录算用量——它一个字都不碰</span></p>
-
     <!-- mock window -->
     <div class="demo">
       <div class="macbar">
@@ -384,28 +390,30 @@
         <div>
           <div class="scene">
             <div class="mini-bar">
-              <span class="mbg warn"><svg class="dial"><use href="#dial"/></svg> 82% 38m</span>
+              <span class="mbg warn lit"><svg class="dial"><use href="#dial"/></svg> 82% 38m
+                <div class="popover">
+                  <div class="dropdown">
+                    <div class="dd-head"><svg class="dial"><use href="#dial"/></svg> <span class="en">Claude Code usage</span><span class="zh">Claude Code 用量</span></div>
+                    <div class="dd-row">
+                      <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> <span class="en">Current 5-hour · session</span><span class="zh">当前 5 小时 · 会话</span></div>
+                      <div class="dd-used warn">82%<span class="muted"><span class="en"> used&nbsp;·&nbsp;18% left</span><span class="zh"> 已用&nbsp;·&nbsp;还剩 18%</span></span></div>
+                      <div class="gaugebar warn">████████░░</div>
+                      <div class="dd-reset"><span class="en">resets in 38m</span><span class="zh">38m 后重置</span></div>
+                    </div>
+                    <div class="dd-row">
+                      <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg> <span class="en">This week · 7-day</span><span class="zh">本周 · 7 天</span></div>
+                      <div class="dd-used">41%<span class="muted"><span class="en"> used&nbsp;·&nbsp;59% left</span><span class="zh"> 已用&nbsp;·&nbsp;还剩 59%</span></span></div>
+                      <div class="gaugebar">████░░░░░░</div>
+                      <div class="dd-reset"><span class="en">resets in 5d</span><span class="zh">5d 后重置</span></div>
+                    </div>
+                  </div>
+                </div>
+              </span>
               <svg class="sysicon" width="22" height="13" viewBox="0 0 26 14" fill="none"><rect x="1" y="2.5" width="20" height="9" rx="2.6" stroke="currentColor" stroke-width="1.3"/><rect x="2.8" y="4.3" width="13" height="5.4" rx="1.2" fill="currentColor"/><path d="M23.2 5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
               <svg class="sysicon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11a12 12 0 0 1 16 0M7.5 14.5a7 7 0 0 1 9 0"/><circle cx="12" cy="18" r="1.1" fill="currentColor" stroke="none"/></svg>
               <span class="clock">Sat 21:04</span>
             </div>
-            <div class="mini-stage">
-              <div class="dropdown">
-                <div class="dd-head"><svg class="dial"><use href="#dial"/></svg> <span class="en">Claude Code usage</span><span class="zh">Claude Code 用量</span></div>
-                <div class="dd-row">
-                  <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> <span class="en">Current 5-hour · session</span><span class="zh">当前 5 小时 · 会话</span></div>
-                  <div class="dd-used warn">82%<span class="muted"><span class="en"> used&nbsp;·&nbsp;18% left</span><span class="zh"> 已用&nbsp;·&nbsp;还剩 18%</span></span></div>
-                  <div class="gaugebar warn">████████░░</div>
-                  <div class="dd-reset"><span class="en">resets in 38m</span><span class="zh">38m 后重置</span></div>
-                </div>
-                <div class="dd-row">
-                  <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg> <span class="en">This week · 7-day</span><span class="zh">本周 · 7 天</span></div>
-                  <div class="dd-used">41%<span class="muted"><span class="en"> used&nbsp;·&nbsp;59% left</span><span class="zh"> 已用&nbsp;·&nbsp;还剩 59%</span></span></div>
-                  <div class="gaugebar">████░░░░░░</div>
-                  <div class="dd-reset"><span class="en">resets in 5d</span><span class="zh">5d 后重置</span></div>
-                </div>
-              </div>
-            </div>
+            <div class="mini-stage"></div>
           </div>
           <p class="scene-cap"><span class="en"><b>Heads up (≥75%)</b> — the 5-hour window is the one biting.</span><span class="zh"><b>留意（≥75%）</b>——咬人的是 5 小时窗口。</span></p>
         </div>
@@ -413,28 +421,30 @@
         <div>
           <div class="scene">
             <div class="mini-bar">
-              <span class="mbg crit"><svg class="dial"><use href="#dial"/></svg> W93% 2d</span>
+              <span class="mbg crit lit"><svg class="dial"><use href="#dial"/></svg> W93% 2d
+                <div class="popover">
+                  <div class="dropdown">
+                    <div class="dd-head"><svg class="dial"><use href="#dial"/></svg> <span class="en">Claude Code usage</span><span class="zh">Claude Code 用量</span></div>
+                    <div class="dd-row">
+                      <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> <span class="en">Current 5-hour · session</span><span class="zh">当前 5 小时 · 会话</span></div>
+                      <div class="dd-used">58%<span class="muted"><span class="en"> used&nbsp;·&nbsp;42% left</span><span class="zh"> 已用&nbsp;·&nbsp;还剩 42%</span></span></div>
+                      <div class="gaugebar">██████░░░░</div>
+                      <div class="dd-reset"><span class="en">resets in 1h20m</span><span class="zh">1h20m 后重置</span></div>
+                    </div>
+                    <div class="dd-row">
+                      <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg> <span class="en">This week · 7-day</span><span class="zh">本周 · 7 天</span></div>
+                      <div class="dd-used crit">93%<span class="muted"><span class="en"> used&nbsp;·&nbsp;7% left</span><span class="zh"> 已用&nbsp;·&nbsp;还剩 7%</span></span></div>
+                      <div class="gaugebar crit">█████████░</div>
+                      <div class="dd-reset"><span class="en">resets in 2d</span><span class="zh">2d 后重置</span></div>
+                    </div>
+                  </div>
+                </div>
+              </span>
               <svg class="sysicon" width="22" height="13" viewBox="0 0 26 14" fill="none"><rect x="1" y="2.5" width="20" height="9" rx="2.6" stroke="currentColor" stroke-width="1.3"/><rect x="2.8" y="4.3" width="13" height="5.4" rx="1.2" fill="currentColor"/><path d="M23.2 5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
               <svg class="sysicon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11a12 12 0 0 1 16 0M7.5 14.5a7 7 0 0 1 9 0"/><circle cx="12" cy="18" r="1.1" fill="currentColor" stroke="none"/></svg>
               <span class="clock">Sat 21:04</span>
             </div>
-            <div class="mini-stage">
-              <div class="dropdown">
-                <div class="dd-head"><svg class="dial"><use href="#dial"/></svg> <span class="en">Claude Code usage</span><span class="zh">Claude Code 用量</span></div>
-                <div class="dd-row">
-                  <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> <span class="en">Current 5-hour · session</span><span class="zh">当前 5 小时 · 会话</span></div>
-                  <div class="dd-used">58%<span class="muted"><span class="en"> used&nbsp;·&nbsp;42% left</span><span class="zh"> 已用&nbsp;·&nbsp;还剩 42%</span></span></div>
-                  <div class="gaugebar">██████░░░░</div>
-                  <div class="dd-reset"><span class="en">resets in 1h20m</span><span class="zh">1h20m 后重置</span></div>
-                </div>
-                <div class="dd-row">
-                  <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg> <span class="en">This week · 7-day</span><span class="zh">本周 · 7 天</span></div>
-                  <div class="dd-used crit">93%<span class="muted"><span class="en"> used&nbsp;·&nbsp;7% left</span><span class="zh"> 已用&nbsp;·&nbsp;还剩 7%</span></span></div>
-                  <div class="gaugebar crit">█████████░</div>
-                  <div class="dd-reset"><span class="en">resets in 2d</span><span class="zh">2d 后重置</span></div>
-                </div>
-              </div>
-            </div>
+            <div class="mini-stage"></div>
           </div>
           <p class="scene-cap"><span class="en"><b>Critical (≥90%)</b> — the weekly wall preempts; it's the hard limit.</span><span class="zh"><b>告急（≥90%）</b>——一周硬墙优先冒头；这是真正的上限。</span></p>
         </div>
@@ -445,12 +455,12 @@
 </header>
 
 <!-- ============ PRIVACY ============ -->
-<section id="privacy" class="privacy">
+<section id="privacy" class="band">
   <div class="wrap">
     <div class="sec-head">
       <span class="eyebrow"><span class="en">What it can and can't see</span><span class="zh">它能看到什么，看不到什么</span></span>
-      <h2><span class="en">Built to be auditable</span><span class="zh">天生可审计</span></h2>
-      <p><span class="en">It's all readable bash and Python — nothing obfuscated, nothing hidden.</span><span class="zh">全是能读懂的 bash 和 Python——没有混淆，没有藏私。</span></p>
+      <h2><span class="en">Private by design</span><span class="zh">绝对隐私安全</span></h2>
+      <p><span class="en">Most usage trackers tally your usage by reading your conversation logs — this one never reads a single word.</span><span class="zh">多数用量工具靠翻你的对话记录算用量——我一个字都不碰。</span></p>
     </div>
     <div class="priv-grid">
 
@@ -491,7 +501,7 @@
 </section>
 
 <!-- ============ INSTALL ============ -->
-<section id="install" style="background:#fff;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)">
+<section id="install">
   <div class="wrap">
     <div class="sec-head">
       <span class="eyebrow"><span class="en">Get it running</span><span class="zh">让它跑起来</span></span>
@@ -528,6 +538,38 @@
   </div>
 </section>
 
+<!-- ============ FEATURES ============ -->
+<section id="features" class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="en">Why it's different</span><span class="zh">它有何不同</span></span>
+      <h2><span class="en">Small, honest, and out of your way</span><span class="zh">小巧、诚实、不挡道</span></h2>
+      <p><span class="en">It only speaks up when it matters — and when it does, it tells the truth.</span><span class="zh">只在要紧时出声——出声时，说的都是实话。</span></p>
+    </div>
+    <div class="feat-grid">
+
+      <div class="feat">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.5 17.5a9 9 0 1 1 17 0"/><path d="M12 17.5 16.2 9.8"/><circle cx="12" cy="17.5" r="1.8" fill="currentColor"/></svg></span>
+        <h3><span class="en">Glance and go</span><span class="zh">一眼就懂</span></h3>
+        <p><span class="en">When you have room it's just a quiet number. As your quota runs low it turns amber, then red, with a reset countdown — tucked in the corner of your menu bar, notch-friendly and always out of your way.</span><span class="zh">宽裕时它只是一个安静的数字；额度吃紧，它自己变橙、变红，带上重置倒计时。安静待在菜单栏角落，刘海友好，从不挡你的道。</span></p>
+      </div>
+
+      <div class="feat">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v5c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <h3><span class="en">Never lies to you</span><span class="zh">绝不骗你</span></h3>
+        <p><span class="en">If the numbers go stale it honestly fades to gray — never old data dressed up as live. It either tells you the truth or admits it's out of date.</span><span class="zh">数据过期就老实变灰，绝不拿旧数字伪装成实时。要么给你真话，要么明说自己旧了。</span></p>
+      </div>
+
+      <div class="feat">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/><path d="M12 8v4l2.5 1.5"/></svg></span>
+        <h3><span class="en">Costs you nothing</span><span class="zh">零额度消耗</span></h3>
+        <p><span class="en">It refreshes quietly in the background and never spends a token of your subscription — and keeps working even when you've stepped away from your desk.</span><span class="zh">后台静默刷新，永不花掉你订阅里的一个 token；你离开座位，它也照常工作。</span></p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 <!-- ============ HOW IT WORKS ============ -->
 <section id="how">
   <div class="wrap">
@@ -557,44 +599,6 @@
         <h3><span class="en">The statusLine</span><span class="zh">statusLine 桥接</span></h3>
         <span class="tag">bridge/claude-gauge-statusline.py</span>
         <p><span class="en">Wired as Claude Code's <code>statusLine</code> command, it reads the rate limits CC already hands its status bar and writes <code>live.json</code> — so the menu bar updates instantly while you work, with no API call and no token needed. Applies to new sessions started after you configure it.</span><span class="zh">作为 Claude Code 的 <code>statusLine</code> 命令接入，它读取 CC 已经喂给自己状态栏的限额，写入 <code>live.json</code>——这样你干活时菜单栏即时更新，无需任何 API 请求，也不用 token。只对配置之后新开的会话生效。</span></p>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ============ FEATURES ============ -->
-<section id="features">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="eyebrow"><span class="en">Why it's different</span><span class="zh">它有何不同</span></span>
-      <h2><span class="en">Small, honest, and out of your way</span><span class="zh">小巧、诚实、不挡道</span></h2>
-      <p><span class="en">It only speaks up when it matters — and when it does, it tells the truth.</span><span class="zh">只在要紧时出声——出声时，说的都是实话。</span></p>
-    </div>
-    <div class="feat-grid">
-
-      <div class="feat">
-        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.5 17.5a9 9 0 1 1 17 0"/><path d="M12 17.5 16.2 9.8"/><circle cx="12" cy="17.5" r="1.8" fill="currentColor"/></svg></span>
-        <h3><span class="en">Status-aware minimalism</span><span class="zh">随状态变色的极简主义</span></h3>
-        <p><span class="en">When you have headroom it's silent — just the current 5-hour percentage, auto black/white to match your menu bar. Cross a threshold and it surfaces the window that's actually biting, with a color and a reset countdown.</span><span class="zh">宽裕时它安静无声——只显示当前 5 小时窗口的百分比，自动黑白配色匹配你的菜单栏。跨过阈值，它就把真正告急的那个窗口冒出来，带上颜色和重置倒计时。</span></p>
-      </div>
-
-      <div class="feat">
-        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/><path d="M12 8v4l2.5 1.5"/></svg></span>
-        <h3><span class="en">Self-healing — at zero cost</span><span class="zh">零成本自愈</span></h3>
-        <p><span class="en">Claude Code lets its keychain token expire while idle, so the usage API starts returning <code>401</code>. ClaudeGauge renews it the way Claude Code itself does — a direct OAuth refresh that costs nothing against your quota: no prompt, no inference, just an auth call. The gauge keeps working when you've stepped away, and never spends a token of your subscription.</span><span class="zh">Claude Code 闲置时会让钥匙串里的 token 过期，于是用量 API 开始返回 <code>401</code>。ClaudeGauge 用和 Claude Code 自己一样的方式给它续命——一次直接的 OAuth 刷新，不计入你的任何额度：不发提示、不做推理，只是一次鉴权调用。你离开座位时表盘照样工作，且绝不花掉你订阅里的一个 token。</span></p>
-      </div>
-
-      <div class="feat">
-        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.1a2 2 0 0 1 3.4 0l8 13.9a2 2 0 0 1-1.7 3H3.9a2 2 0 0 1-1.7-3Z"/><path d="M12 9v4M12 17h.01"/></svg></span>
-        <h3><span class="en">Honestly stale</span><span class="zh">过期就老实说</span></h3>
-        <p><span class="en">If data is more than 15 minutes old, the title goes gray and grows a <code>~</code>, and the dropdown warns you. No tool lies to you with old numbers dressed up as live — ever.</span><span class="zh">数据超过 15 分钟没刷新，标题就变灰、长出一个 <code>~</code>，下拉里也会提醒你。绝不拿过期数字伪装成实时来糊弄你——永远不会。</span></p>
-      </div>
-
-      <div class="feat">
-        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M9 4v3a3 3 0 0 0 6 0V4"/></svg></span>
-        <h3><span class="en">Notch-friendly</span><span class="zh">刘海友好</span></h3>
-        <p><span class="en">On notched Macs the menu bar title stays under ~90px (about 11 characters). Go wider and the notch swallows your icon whole — so the display is engineered to stay short no matter the state.</span><span class="zh">带刘海的 Mac 上，菜单栏标题始终压在约 90px（约 11 个字符）以内。再宽一点，刘海就会把你的图标整个吞掉——所以无论什么状态，显示都被刻意控制得够短。</span></p>
       </div>
 
     </div>
