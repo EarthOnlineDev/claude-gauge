@@ -102,11 +102,14 @@
   .hero-note{font-size:13px;color:var(--ink-faint)}
 
   /* ---------- mock menu bar demo ---------- */
-  .demo{margin:56px auto 0;max-width:760px}
+  .demo{position:relative;margin:56px auto 0;max-width:720px;border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;box-shadow:0 28px 66px rgba(40,36,28,.14);
+    background:linear-gradient(150deg,#e8eef7 0%,#f1ecf3 52%,#f7f1ea 100%);}
   .macbar{
-    position:relative;background:rgba(250,249,247,.94);
-    border:1px solid var(--line);border-bottom:none;
-    border-radius:14px 14px 0 0;height:32px;display:flex;align-items:center;
+    position:relative;z-index:6;background:rgba(250,249,247,.82);
+    backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);
+    border-bottom:1px solid rgba(0,0,0,.07);
+    height:32px;display:flex;align-items:center;
     padding:0 14px;gap:16px;font-size:13px;color:#34343a;
   }
   .macbar .appl svg{width:14px;height:14px;display:block;opacity:.82}
@@ -117,7 +120,7 @@
   .macbar .clock{opacity:.85;font-variant-numeric:tabular-nums}
   /* the ClaudeGauge item — plain menu-bar text, never a pill */
   .mbg{
-    display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;
+    position:relative;display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;
     font-size:13px;font-weight:500;line-height:1;color:var(--ink);
     font-variant-numeric:tabular-nums;white-space:nowrap;
   }
@@ -125,18 +128,16 @@
   .mbg.lit{background:rgba(0,0,0,.08)}
   .mbg.warn{color:var(--warn)}.mbg.crit{color:var(--crit)}.mbg.stale{color:#9a9a9a}
 
-  .screen{
-    background:var(--card);border:1px solid var(--line);border-radius:0 0 14px 14px;
-    padding:30px;display:grid;grid-template-columns:1.05fr .95fr;gap:26px;align-items:start;
-  }
-  @media(max-width:680px){.screen{grid-template-columns:1fr;gap:20px}}
-  .screen-cap{font-size:13px;color:var(--ink-faint);text-align:left;margin:0 0 10px}
-
-  /* dropdown card mock */
+  /* desktop stage + the menu popover hanging from the gauge */
+  .stage{height:336px}
+  @media(max-width:680px){.stage{height:12px}}
+  .popover{position:absolute;top:calc(100% + 8px);right:0;z-index:7;text-align:left}
+  @media(max-width:680px){.popover{position:static;margin-top:9px}}
   .dropdown{
-    background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden;
-    box-shadow:0 18px 50px rgba(40,36,28,.10);text-align:left;
+    width:286px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    box-shadow:0 24px 60px rgba(40,36,28,.28);text-align:left;
   }
+  @media(max-width:680px){.dropdown{width:min(286px,86vw)}}
   .dd-head{
     display:flex;align-items:center;gap:9px;padding:13px 16px;border-bottom:1px solid var(--line-soft);
     font-weight:600;font-size:14px;
@@ -155,14 +156,15 @@
   .dd-reset{font-size:11.5px;color:var(--ink-faint);margin-top:8px}
   .dd-foot{padding:11px 16px;background:#fbfaf7;font-size:11.5px;color:var(--ink-faint);display:flex;align-items:center;gap:7px;border-top:1px solid var(--line-soft)}
 
-  .demo-legend{text-align:left}
-  .demo-legend h3{font-size:17px;letter-spacing:-.01em;margin:0 0 8px}
-  .legend-lead{font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:0 0 16px}
-  .leg{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
-  .leg .mbg{flex:none;min-width:80px;justify-content:center;margin-top:1px;
+  /* one number, three colors */
+  .threecolors{max-width:720px;margin:24px auto 0;text-align:left}
+  .tc-lead{font-size:14.5px;color:var(--ink-soft);line-height:1.6;margin:0 auto 18px;max-width:660px;text-align:center}
+  .tc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+  @media(max-width:680px){.tc-grid{grid-template-columns:1fr}}
+  .tc{border:1px solid var(--line);border-radius:13px;padding:17px;background:var(--card)}
+  .tc .mbg{justify-content:center;min-width:86px;margin-bottom:11px;
     background:linear-gradient(140deg,#eef2f8,#f6f0ea);border:1px solid var(--line)}
-  .leg .txt{font-size:13px;color:var(--ink-soft);line-height:1.5}
-  .leg .txt{font-size:13.5px;color:var(--ink-soft);line-height:1.5}
+  .tc p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.55}
   .leg .txt b{color:var(--ink);font-weight:600}
 
   /* ---------- section scaffold ---------- */
@@ -310,61 +312,50 @@
         <span class="appl"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.7c-.03-2.4 1.96-3.55 2.05-3.6-1.12-1.64-2.86-1.86-3.48-1.89-1.48-.15-2.89.87-3.64.87-.75 0-1.91-.85-3.14-.83-1.62.02-3.11.94-3.94 2.39-1.68 2.92-.43 7.24 1.2 9.61.8 1.16 1.75 2.46 3 2.41 1.2-.05 1.66-.78 3.11-.78 1.45 0 1.86.78 3.14.75 1.3-.02 2.12-1.18 2.91-2.35.92-1.35 1.3-2.66 1.32-2.73-.03-.01-2.53-.97-2.56-3.85zM14.7 5.6c.66-.8 1.1-1.92.98-3.03-.95.04-2.1.63-2.78 1.43-.61.71-1.14 1.84-1 2.93 1.06.08 2.14-.54 2.8-1.33z"/></svg></span>
         <span class="mb-menus"><b>Claude Code</b><span>File</span><span>Edit</span><span>View</span></span>
         <div class="right">
-          <span class="mbg lit"><svg class="dial"><use href="#dial"/></svg> 49%</span>
+          <span class="mbg lit"><svg class="dial"><use href="#dial"/></svg> 49%
+            <div class="popover">
+              <div class="dropdown">
+                <div class="dd-head"><svg class="dial"><use href="#dial"/></svg> Claude Code usage</div>
+                <div class="dd-row">
+                  <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Current 5-hour · session</div>
+                  <div class="dd-used">49%<span class="muted"> used&nbsp;&nbsp;·&nbsp;&nbsp;51% left</span></div>
+                  <div class="gaugebar">█████░░░░░</div>
+                  <div class="dd-reset">resets in 2h41m</div>
+                </div>
+                <div class="dd-row">
+                  <div class="dd-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg> This week · 7-day</div>
+                  <div class="dd-used">63%<span class="muted"> used&nbsp;&nbsp;·&nbsp;&nbsp;37% left</span></div>
+                  <div class="gaugebar">██████░░░░</div>
+                  <div class="dd-reset">resets in 4d</div>
+                </div>
+                <div class="dd-foot"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7M21 3v6h-6"/></svg> Updated 21:04 (just now) · refresh now</div>
+              </div>
+            </div>
+          </span>
           <svg class="sysicon" width="23" height="14" viewBox="0 0 26 14" fill="none" aria-hidden="true"><rect x="1" y="2.5" width="20" height="9" rx="2.6" stroke="currentColor" stroke-width="1.3"/><rect x="2.8" y="4.3" width="13" height="5.4" rx="1.2" fill="currentColor"/><path d="M23.2 5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <svg class="sysicon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 11a12 12 0 0 1 16 0M7.5 14.5a7 7 0 0 1 9 0"/><circle cx="12" cy="18" r="1.1" fill="currentColor" stroke="none"/></svg>
           <svg class="sysicon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="5.5" width="18" height="5.4" rx="2.7"/><rect x="3" y="13.1" width="18" height="5.4" rx="2.7"/></svg>
           <span class="clock">Sat 21:04</span>
         </div>
       </div>
-      <div class="screen">
-        <div>
-          <p class="screen-cap">Title stays silent when you're fine — one number, auto-contrast.</p>
-          <div class="dropdown">
-            <div class="dd-head"><svg class="dial"><use href="#dial"/></svg> Claude Code usage</div>
-            <div class="dd-row">
-              <div class="dd-label">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                Current 5-hour · session
-              </div>
-              <div class="dd-used">49%<span class="muted"> used&nbsp;&nbsp;·&nbsp;&nbsp;51% left</span></div>
-              <div class="gaugebar ok">█████░░░░░</div>
-              <div class="dd-reset">resets in 2h41m</div>
-            </div>
-            <div class="dd-row">
-              <div class="dd-label">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>
-                This week · 7-day
-              </div>
-              <div class="dd-used">63%<span class="muted"> used&nbsp;&nbsp;·&nbsp;&nbsp;37% left</span></div>
-              <div class="gaugebar ok">██████░░░░</div>
-              <div class="dd-reset">resets in 4d</div>
-            </div>
-            <div class="dd-foot">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7M21 3v6h-6"/></svg>
-              Updated 21:04 (just now) · refresh now
-            </div>
-          </div>
+      <div class="stage"></div>
+    </div>
+
+    <!-- one number, three colors -->
+    <div class="threecolors">
+      <p class="tc-lead"><b>One number, three colors — it follows your intuition.</b> Whichever limit is about to bite is the one that shows up. When you're fine you just see your current session; the weekly window only steps in when it's the one to worry about.</p>
+      <div class="tc-grid">
+        <div class="tc">
+          <span class="mbg"><svg class="dial"><use href="#dial"/></svg> 49%</span>
+          <p><b>Plenty.</b> Session's fine, the week stays hidden — near-black and out of your way.</p>
         </div>
-        <div class="demo-legend">
-          <h3>One number, three colors</h3>
-          <p class="legend-lead"><b>It follows your intuition</b> — whichever limit is about to bite is the one that surfaces. When you're fine you just see your current session; the weekly window only steps in when it's the one to worry about.</p>
-          <div class="leg">
-            <span class="mbg"><svg class="dial"><use href="#dial"/></svg> 49%</span>
-            <span class="txt"><b>Plenty (&lt;75%).</b> Session's fine, the week stays hidden — near-black and out of your way.</span>
-          </div>
-          <div class="leg">
-            <span class="mbg warn"><svg class="dial"><use href="#dial"/></svg> 82% 38m</span>
-            <span class="txt"><b>Heads up (75–89%).</b> The biting window turns amber and shows when it resets.</span>
-          </div>
-          <div class="leg">
-            <span class="mbg crit"><svg class="dial"><use href="#dial"/></svg> W93% 2d</span>
-            <span class="txt"><b>Critical (≥90%).</b> Red. When the weekly 7-day wall is the real limit it wins the tie — that's what you need to see.</span>
-          </div>
-          <div class="leg">
-            <span class="mbg stale"><svg class="dial"><use href="#dial"/></svg> 49%~</span>
-            <span class="txt"><b>Stale.</b> No fresh data for 15 min → grays out and adds <code style="font-family:var(--mono)">~</code>. It never fakes freshness.</span>
-          </div>
+        <div class="tc">
+          <span class="mbg warn"><svg class="dial"><use href="#dial"/></svg> 82% 38m</span>
+          <p><b>Heads up.</b> The biting window turns amber, with its reset countdown.</p>
+        </div>
+        <div class="tc">
+          <span class="mbg crit"><svg class="dial"><use href="#dial"/></svg> W93% 2d</span>
+          <p><b>Critical.</b> Red — and the weekly wall wins ties, because that's the hard limit.</p>
         </div>
       </div>
     </div>
