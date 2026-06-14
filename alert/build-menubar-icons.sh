@@ -51,15 +51,19 @@ open(f"{tmp}/ic_ok.svg","w").write(solid("#1d1d1f"))
 open(f"{tmp}/ic_warn.svg","w").write(solid("#e08a2b"))
 open(f"{tmp}/ic_crit.svg","w").write(solid("#e0483d"))
 open(f"{tmp}/ic_stale.svg","w").write(solid("#9a9a9a"))
-open(f"{tmp}/ic_rain.svg","w").write(base())   # 原样：彩虹弧 + 深针 + 白芯
+open(f"{tmp}/ic_rain.svg","w").write(base())   # 浅色栏：彩虹弧 + 深针 + 白芯
+# 深色栏变体：针/轴换浅色（白针）、去白芯 — 插件按 _is_dark() 选用，与品牌深色 logo（白针）一致
+rd = base().replace('stroke="#1B1B1B"', 'stroke="#ededef"').replace('fill="#1B1B1B"', 'fill="#ededef"')
+rd = rd.replace(f'<circle cx="12" cy="12" r="{PIP_R}" fill="#FFFFFF"/>', '')
+open(f"{tmp}/ic_rain_dark.svg","w").write(rd)
 PY
 
-for n in ok warn crit stale rain; do
+for n in ok warn crit stale rain rain_dark; do
   rsvg-convert -h 40 "$TMP/ic_$n.svg" -o "$TMP/ic_$n.png"   # @2x（显示 21x17 逻辑点）
 done
 
-echo "=== 把下面 5 个常量粘回 plugin/claude-gauge.15s.sh ==="
-for pair in OK:ok WARN:warn CRIT:crit STALE:stale RAINBOW:rain; do
+echo "=== 把下面 6 个常量粘回 plugin/claude-gauge.15s.sh ==="
+for pair in OK:ok WARN:warn CRIT:crit STALE:stale RAINBOW:rain RAINBOW_DARK:rain_dark; do
   name="${pair%%:*}"; file="${pair##*:}"
   printf 'ICON_%s="%s"\n' "$name" "$(base64 < "$TMP/ic_$file.png" | tr -d '\n')"
 done
