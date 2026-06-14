@@ -11,11 +11,18 @@
 # <swiftbar.hideSwiftBar>true</swiftbar.hideSwiftBar>
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 /usr/bin/python3 <<'PY'
-import os, json, urllib.request, datetime, time, sys, subprocess
+import os, json, urllib.request, datetime, time, sys, subprocess, tempfile
 CACHE=os.path.expanduser("~/.cache/claude-gauge/cache.json")
 LIVE =os.path.expanduser("~/.cache/claude-gauge/live.json")
+ATTN =os.path.expanduser("~/.cache/claude-gauge/attention.json")   # 完成提醒层：未读事件（装了可选层才有）
+ACK  =os.path.expanduser("~/.cache/claude-gauge/ack.json")          # 完成提醒层：已读标记
 os.makedirs(os.path.dirname(CACHE), exist_ok=True)
 LOGO="gauge.with.needle"; STALE_SEC=900
+CLAUDE_BUNDLE="com.anthropic.claudefordesktop"                      # 点击拉起 / 自动熄灭判定的目标 App
+ALERT=os.path.expanduser("~/.claude/claude-gauge-alert.py")         # 左键点击动作脚本
+# 有新消息态图标：把系统 SF 符号 gauge.with.needle 本体渲成彩虹的全彩 PNG（由 alert/sfgen.m 生成）。普通态用 sfimage 渲染同一符号，故两态形状 100% 一致。
+# 为何不用 sfconfig：其 Palette 多色在实测 SwiftBar 上糊成单橙色，故彩虹用 image= 全彩位图。
+RAINBOW_PNG="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"
 WARN_TH,CRIT_TH=25.0,10.0
 COL_WARN,COL_CRIT,COL_STALE="#e08a2b","#e0483d","#9a9a9a"
 def _is_dark():
@@ -65,7 +72,39 @@ def scol(rem):
     if l==1: return f" color={COL_WARN}"
     return f" color={NORMAL}"
 
-def title_line(fh,wk,d,stale=False):
+# ---- 完成提醒层（可选）：未装时 attention.json 不存在 → _armed 恒 False、渲染与今天逐字节一致 ----
+def _loadj(p):
+    try: return json.load(open(p))
+    except Exception: return None
+def _front_bundle():
+    """当前前台 App 的 bundle id；仅用 lsappinfo（不弹辅助功能/自动化授权框）。取不到→None。"""
+    try:
+        asn=subprocess.run(["/usr/bin/lsappinfo","front"],capture_output=True,text=True,timeout=2).stdout.strip()
+        if not asn: return None
+        out=subprocess.run(["/usr/bin/lsappinfo","info","-only","bundleID",asn],capture_output=True,text=True,timeout=2).stdout
+        if "=" in out:
+            v=out.split("=",1)[1].strip().strip('"').strip()   # 形如 "CFBundleIdentifier"="com.…"
+            if v and v!="NULL" and "." in v: return v
+        return None
+    except Exception: return None
+def _awrite_ack(ts):
+    try:
+        dd=os.path.dirname(ACK); os.makedirs(dd,exist_ok=True)
+        fd,tmp=tempfile.mkstemp(dir=dd)
+        with os.fdopen(fd,"w") as f: json.dump({"ts":ts},f)
+        os.replace(tmp,ACK)
+    except Exception: pass
+def _ts(x):
+    try: return float(x or 0)
+    except Exception: return 0.0
+def _armed():
+    """有未读完成/需关注事件，且事件发生时你不在 Claude 前台 → 点亮彩虹。"""
+    att=_loadj(ATTN)
+    if not att or "ts" not in att: return False
+    if att.get("front")==CLAUDE_BUNDLE: return False
+    return _ts(att.get("ts")) > _ts((_loadj(ACK) or {}).get("ts"))
+
+def title_line(fh,wk,d,stale=False,armed=False):
     d=d if isinstance(d,dict) else {}
     if fh is None and wk is None: return f"额度⚠ | color={COL_WARN}"
     u5,u7=_used(fh),_used(wk); fl,wl=_lvl(fh),_lvl(wk)
@@ -82,9 +121,14 @@ def title_line(fh,wk,d,stale=False):
         if wl==2 or wl>fl: text,col=s7(True),(COL_CRIT if wl==2 else COL_WARN)
         else:              text,col=s5(True),(COL_CRIT if fl==2 else COL_WARN)
     if spending and col is None and _w(f"{text}+$")<=MAXW: text=f"{text}+$"
-    if stale: return f"{text}~ | color={COL_STALE}"
+    if armed:
+        act=f"image={RAINBOW_PNG} width=22 height=21 bash=/usr/bin/python3 param0={ALERT} param1=open terminal=false"
+        if stale:       return f"{text}~ | color={COL_STALE} {act}"
+        if col is None: return f"{text} | {act}"                   # 够用态：不写 color，用菜单栏自适应色（深色壁纸下自动白字，别强制成黑）
+        return f"{text} | color={col} {act}"                       # 数字额度色（橙/红，本就该恒定显色），图标彩虹
+    if stale: return f"{text}~ | color={COL_STALE} sfimage={LOGO}"
     if col is None: return f"{text} | sfimage={LOGO}"
-    return f"{text} | color={col}"
+    return f"{text} | color={col} sfimage={LOGO}"
 
 def section(label, icon, u, cd_str, col):
     print(f"{label} | sfimage={icon} size=12 color={NORMAL}")                       # 标签：默认色(清晰)
@@ -96,7 +140,11 @@ def render(d,ts):
     age=time.time()-ts; stale=age>STALE_SEC
     fh,wk=remain(d.get("five_hour")),remain(d.get("seven_day"))
     son=remain(d.get("seven_day_sonnet")); opus=remain(d.get("seven_day_opus"))
-    print(title_line(fh,wk,d,stale))
+    # 完成提醒层：仅当装了该层(有 attention.json)才做前台检测；未装则零开销、输出同今天。
+    att=_loadj(ATTN)
+    if att and _front_bundle()==CLAUDE_BUNDLE:          # 正看着 Claude → 标记已读（回到 ≤15s 自动熄灭）
+        if _ts(att.get("ts")) > _ts((_loadj(ACK) or {}).get("ts")): _awrite_ack(time.time())
+    print(title_line(fh,wk,d,stale,_armed() if att else False))
     print("---")
     print(f"Claude Code 用量 | sfimage={LOGO} color={NORMAL}")                      # 标题：默认色(清晰)
     if stale:
