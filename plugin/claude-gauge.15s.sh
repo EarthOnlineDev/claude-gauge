@@ -2,6 +2,13 @@
 # Claude Code 用量 — SwiftBar 插件。每 15 秒读 cache.json/live.json 渲染。
 # 数据由后台刷新器(LaunchAgent)写入；本插件只渲染+兜底。不碰对话文件。
 # 配色：够用=默认(黑/自适应)，需关注=橙，紧急=红，无绿色。进度条为主，倒计时为辅。
+# SwiftBar 元数据：隐藏宿主自动追加的页脚项（上次更新/命令行运行/停用插件/关于/SwiftBar 子菜单），
+# 让下拉干净收尾在「立即刷新」，与落地页样图一致。这些只是宿主噪音，不影响任何渲染逻辑。
+# <swiftbar.hideLastUpdated>true</swiftbar.hideLastUpdated>
+# <swiftbar.hideRunInTerminal>true</swiftbar.hideRunInTerminal>
+# <swiftbar.hideDisablePlugin>true</swiftbar.hideDisablePlugin>
+# <swiftbar.hideAbout>true</swiftbar.hideAbout>
+# <swiftbar.hideSwiftBar>true</swiftbar.hideSwiftBar>
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 /usr/bin/python3 <<'PY'
 import os, json, urllib.request, datetime, time, sys, subprocess
