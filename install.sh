@@ -26,7 +26,8 @@ mkdir -p "$PLUGIN_DIR" "$HOME/.claude" "$HOME/.cache/claude-gauge"
 install -m 0755 "$REPO/plugin/claude-gauge.15s.sh"      "$PLUGIN_DIR/claude-gauge.15s.sh"
 install -m 0755 "$REPO/refresher/claude-gauge-refresh.sh" "$HOME/.claude/claude-gauge-refresh.sh"
 install -m 0755 "$REPO/bridge/claude-gauge-statusline.py" "$HOME/.claude/claude-gauge-statusline.py"
-ok "插件 → $PLUGIN_DIR ；刷新器/桥接 → ~/.claude"
+install -m 0755 "$REPO/uninstall.sh"                     "$HOME/.claude/claude-gauge-uninstall.sh"   # ② 稳定卸载脚本：与 clone 解绑，菜单「管理▸卸载」+ 命令行都指它
+ok "插件 → $PLUGIN_DIR ；刷新器/桥接/卸载脚本 → ~/.claude"
 
 # 4. LaunchAgent（后台每 30s 自适应刷新）
 PLIST="$HOME/Library/LaunchAgents/dev.earthonline.claude-gauge.plist"

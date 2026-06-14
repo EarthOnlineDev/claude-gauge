@@ -101,9 +101,8 @@
 |---|---|
 | `alert/claude-gauge-alert.py` | 事件入口：被 hook 调用写 `attention.json`（只记 ts/event/前台App，**不读 stdin/transcript**）；被点击调用拉起 Claude + 写 `ack.json` |
 | `alert/install-alerts.sh` | opt-in 装/卸 + settings.json 幂等安全合并 |
-| `alert/sfgen.m` | 构建期：clang/Obj-C 把系统 SF 符号 `gauge.with.needle` 渲成遮罩 PNG（彩虹或纯黑模板），仅本机构建用 |
-| `alert/build-rainbow-icon.sh` | 构建期管线：编 sfgen.m → 渲蒙版 → PIL 清雾+填彩虹 → 输出 base64（重生成图标用） |
-| `plugin/claude-gauge.15s.sh` | armed 渲染：有新发现=`image=<彩虹PNG> width=22 height=21` + 左键动作；普通=原版 `sfimage`；未装该层行为不变 |
+| `alert/build-menubar-icons.sh` | 构建期管线：用 `rsvg-convert`（`brew install librsvg`）从品牌 logo `docs/logo.svg` 渲 5 张菜单栏图标（OK 单色模板 / WARN 橙 / CRIT 红 / STALE 灰 / RAINBOW 彩虹），描边比品牌 logo 减细（弧 1.8/针 1.44）以和 SF 符号同栏和谐，输出 base64 粘回插件 `ICON_*` 常量（重生成图标用；运行期零依赖） |
+| `plugin/claude-gauge.15s.sh` | armed 渲染：有新发现=`image=<ICON_RAINBOW> {ICON_SZ}` + 左键动作；普通=原版图标常量（OK 用 `templateImage`，其余 `image=`）；未装该层行为不变 |
 | 缓存契约 | `~/.cache/claude-gauge/attention.json`(hook 写) / `ack.json`(点击或回到 Claude 写)，原子写 |
 
 > 关于真机图标渲染踩过的坑（SwiftBar 彩色位图必带淡框、image vs sfimage 尺寸/自适应差异、sfconfig 做不出渐变等），见 `tasks/lessons.md` L7/L8——**这些只影响菜单栏实现，与落地页/README 文案无关**。

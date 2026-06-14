@@ -47,34 +47,36 @@ ClaudeGauge 是一个 **macOS 菜单栏小工具**，实时、状态感知地显
 ### 2.1 渲染层 `plugin/claude-gauge.15s.sh`
 
 - SwiftBar 每 15 秒执行一次（文件名 `.15s.` 即刷新周期）。
-- 读 `live.json` 与 `cache.json`，取 `ts` 较新的一份渲染（`plugin/claude-gauge.15s.sh:131-133`）。
-- **兜底自拉**：若两份缓存都缺失或最新一份超过 150 秒，插件自己从钥匙串读 token 直接调一次 API 写回 `cache.json`（`plugin/claude-gauge.15s.sh:134-141`）。后台刷新器正常工作时这条几乎不触发。
+- 读 `live.json` 与 `cache.json`，取 `ts` 较新的一份渲染（`plugin/claude-gauge.15s.sh:215-216`）。
+- **随 Claude 显隐（①）**：渲染前先 `_active()` 门控——Claude（桌面端或命令行）没在用时输出空 → SwiftBar 隐藏整个菜单栏项（`plugin/claude-gauge.15s.sh:23-46`，仅查进程/App、不读内容，带 120s linger 抹平 `claude -p` 闪烁）。详见 `docs/ARCHITECTURE.md` §4.0。
+- **兜底自拉**：若两份缓存都缺失或最新一份超过 150 秒，插件自己从钥匙串读 token 直接调一次 API 写回 `cache.json`（`plugin/claude-gauge.15s.sh:217-224`）。后台刷新器正常工作时这条几乎不触发。
 - **显示逻辑（状态感知的单一信号灯）**：
-  - 显示已用 %，带 `%`；5 小时窗口无前缀，一周窗口加 `W` 前缀（`title_line`，`:68-87`）。
+  - 显示已用 %，带 `%`；5 小时窗口无前缀，一周窗口加 `W` 前缀（`title_line`，`:138-162`）。
   - 够用（两个窗口都 OK）→ 只显当前 5h 已用 %、近黑自适应色、藏掉周。
   - 不够 → 只显「正在咬人」的那个窗口 + 橙/红 + 重置倒计时；两个都报警显更严重的；周一旦紧急（≥90%）优先（7 天是硬墙）。
 - **阈值**（注意脚本内部用的是「剩余 %」，与对外的「已用 %」互补）：
   - 已用 `<75%` 够用 / `75–89%` 需关注（橙 `#e08a2b`）/ `≥90%` 紧急（红 `#e0483d`）。
-  - 代码里以剩余值表达：`WARN_TH=25.0` `CRIT_TH=10.0`（`plugin/claude-gauge.15s.sh:19`，即剩余 ≤25% 警告、≤10% 紧急）。
-  - 配色去绿；够用 = 近黑，按系统深浅色自适应（`NORMAL` 在 `:21-24` 由 `AppleInterfaceStyle` 决定）。
-- **宽度受限**：带刘海的 Mac，菜单栏标题须 ≤ 约 11 字符（`MAXW=11`，`:26`），否则会被刘海吞掉整条消失。`extra_usage`（超额消费）的 `+$` 标记只在不超宽时才加（`:84`）。
-- **诚实陈旧**：`STALE_SEC=900`（15 分钟，`:18`）。超过则菜单栏变灰加 `~`，下拉里显示「数据已 N 分钟未更新」（`render`，`:95-105`）。
+  - 代码里以剩余值表达：`WARN_TH=25.0` `CRIT_TH=10.0`（`plugin/claude-gauge.15s.sh:57`，即剩余 ≤25% 警告、≤10% 紧急）。
+  - 配色去绿；够用 = 近黑，按系统深浅色自适应（`NORMAL` 在 `:59-62` 由 `AppleInterfaceStyle` 决定）。
+- **宽度受限**：带刘海的 Mac，菜单栏标题须 ≤ 约 11 字符（`MAXW=11`，`:64`），否则会被刘海吞掉整条消失。`extra_usage`（超额消费）的 `+$` 标记只在不超宽时才加（`:154`）。
+- **诚实陈旧**：`STALE_SEC=900`（15 分钟，`:20`）。超过则菜单栏变灰加 `~`，下拉里显示「数据已 N 分钟未更新」（`render`，`:170-199`）。
 - **下拉每行显式上色**：SwiftBar 会把「无动作 + 无颜色」的行渲染成禁用灰，因此每行都显式设了 `color=`（见 `section` 与 `render`）。进度条放大为主信息（`size=15`），倒计时为辅（小灰字 `size=11`）。
-- 下拉底部有「立即刷新」按钮，调 `~/.claude/claude-gauge-refresh.sh force`（`:116`）。
+- 下拉底部有「立即刷新」按钮，调 `~/.claude/claude-gauge-refresh.sh force`（`:195`）；其后（仅当装了稳定卸载脚本 `~/.claude/claude-gauge-uninstall.sh` 时）有 `管理 ▸ 卸载 ClaudeGauge…` 子菜单，`terminal=true` 在 Terminal 里跑卸载（②，`:196-199`，见 `docs/ARCHITECTURE.md` §8.6）。
 
 ### 2.2 数据层 `refresher/claude-gauge-refresh.sh`
 
 - 由 LaunchAgent 触发，label `dev.earthonline.claude-gauge`，`StartInterval=30`（每 30 秒唤醒）。
-- **自适应节流**（`refresher/claude-gauge-refresh.sh:68-70`）：唤醒后先看上轮状态决定是否真的 poll。间隔 `iv`：
+- **随 Claude 暂停轮询（①）**：脚本最前面有 `_claude_running()` + 早退守卫（`refresher/claude-gauge-refresh.sh:20-27`，同渲染层、只查进程/App）——非 force/refresh 且 Claude 没在用时直接退出、不轮询不续命，后台轮询随 Claude 关闭而暂停。
+- **自适应节流**（`refresher/claude-gauge-refresh.sh:77-79`）：唤醒后先看上轮状态决定是否真的 poll。间隔 `iv`：
   - 紧急（max 已用 ≥90%）→ 45s
   - 需关注（≥75%）或刚变化过 → 60s
   - 够用且静止 → 240s（防 429）
   - 未到间隔直接 `raise SystemExit(0)`；`force` 参数跳过节流。
 - **自愈 token（关键创新，零额度）**：token 在 60 秒内到期时（`now+60`），用钥匙串里的 refresh token 向 `https://platform.claude.com/v1/oauth/token` 发一次 OAuth 刷新（`refresh_oauth()`），换回新 token 并**原地写回钥匙串**——纯鉴权调用，零额度消耗。只改 `claudeAiOauth` 三字段、保留 `mcpOAuth` 等其余内容；refresh token 会轮换故必须写回。卡 60 秒是为了避开与活跃 CC（提前 5 分钟自刷新）抢轮换。
-- 从 macOS 钥匙串 `Claude Code-credentials` 读出完整凭证 blob 做鉴权（`kc_read()`，`:28-33`）；调用时带 `Authorization: Bearer <accessToken>`（`:74`）。
-- 调 `https://api.anthropic.com/api/oauth/usage`，header 带 `anthropic-beta: oauth-2025-04-20`（`:74`）。
-- **原子写** `cache.json`：先写临时文件再 `os.replace`（`awrite`，`:23-27`），防止插件读到半截 JSON。
-- 状态持久化在 `refresh-state.json`：`last_poll_ts` / `last_max_util` / `last_5h` / `last_7d` / `changed`（`:88-89`）。
+- 从 macOS 钥匙串 `Claude Code-credentials` 读出完整凭证 blob 做鉴权（`kc_read()`，`:37-42`）；调用时带 `Authorization: Bearer <accessToken>`（`:83`）。
+- 调 `https://api.anthropic.com/api/oauth/usage`，header 带 `anthropic-beta: oauth-2025-04-20`（`:83`）。
+- **原子写** `cache.json`：先写临时文件再 `os.replace`（`awrite`，`:32-36`），防止插件读到半截 JSON。
+- 状态持久化在 `refresh-state.json`：`last_poll_ts` / `last_max_util` / `last_5h` / `last_7d` / `changed`（`:97`）。
 
 ### 2.3 桥接层（可选）`bridge/claude-gauge-statusline.py`
 
@@ -84,12 +86,21 @@ ClaudeGauge 是一个 **macOS 菜单栏小工具**，实时、状态感知地显
 - 价值：**用 CC 时菜单栏即时刷新，不需 API / token，零成本**。
 - 限制：仅对配置 `statusLine` **之后新开的会话**生效；若用户已有 `statusLine` 需手动合并。
 
+### 2.4 提醒层（可选 · opt-in）`alert/claude-gauge-alert.py`
+
+- **「有新发现」彩虹态（面向会话载体 ⑤）**：装了它之后，你离开本次会话的**载体 App**（运行 CC 的终端 App，或 Claude 桌面 App）时若有 CC 会话**完成**（`Stop` hook）或**停下来等你授权**（`Notification`/`permission_prompt` hook），菜单栏表盘点成**彩虹**叫你回来；**左键点图标 = 拉回会话所在载体（终端会话→终端 App、桌面会话→桌面端）+ 熄灭彩虹**，右键照常开下拉。**数字仍保留额度三色**（橙/红不被遮蔽），只把图标染彩虹——两个信号共存。
+- **绝不读内容**：被 hook 调用时**整条忽略 stdin**（CC 灌进来的 `transcript_path` 一律不读），只原子写 `attention.json = {ts, event, front, host}`：`front` = 触发那刻前台 App bundle id（`front_bundle()`，`lsappinfo`）；`host` = 本次会话宿主 App bundle，由 `session_host()` 走**进程祖先链**（`ps -o ppid=`/`comm=`）认出（终端会话→终端 App，桌面会话→桌面端），跳过 claude CLI 自身与 shell/解释器——全程只读进程元数据（`ps`/`defaults`/`lsappinfo`），不弹授权框、绝不读对话/代码。渲染层据 `attention.ts > ack.ts` 且 `attention.front != (attention.host or 桌面端 bundle)` 决定点亮；回到会话载体前台时渲染层自动写 `ack.json` → 彩虹熄灭。**关键修复**：旧版点击写死拉桌面端，终端会话点了会跳错 App（甚至没装桌面端时点了没反应）；现在 `open -b <host>`（回退链 host→front→桌面端）回到正确载体。
+- **opt-in / 默认不装**：靠 `alert/install-alerts.sh` 安装（见 §4 组件表）；**不装时 `attention.json` 不存在 → 插件相关分支全程短路，菜单栏输出与今天逐字节一致**。不联网、不弹系统通知、零遥测。
+- 完整缓存契约、点亮判定、armed 渲染与彩虹位图生成见 `docs/ARCHITECTURE.md` §8.5。
+
 ---
 
 ## 3. 隐私 / 安全模型
 
 - 只读钥匙串 OAuth token + 只调 Anthropic 用量端点。
 - **从不读** `~/.claude/projects` 下的对话 / 代码文件。
+- **随 Claude 显隐（①）只查进程/App 是否存在**（`lsappinfo`/`pgrep`）判断 Claude 在不在用，**绝不读对话/代码/凭证**。
+- 可选的**提醒层**（§2.4）只对 CC 自己推送的 `Stop`/`Notification` hook 事件作反应、只记时间戳 + 事件名 + 前台/会话宿主 App 的 bundle id（面向会话载体 ⑤ 只读进程元数据 `ps`/`defaults`/`lsappinfo`），**绝不读 stdin/transcript/对话/代码**；纯本机 hooks，不联网、不弹系统通知。
 - 无遥测；token 只发往 Anthropic。
 - 全部是可读的 bash / python，无混淆，可逐行审计。
 
@@ -100,7 +111,7 @@ ClaudeGauge 是一个 **macOS 菜单栏小工具**，实时、状态感知地显
 **产品已完成、已开源、已部署，可直接交接。**
 
 - **线上落地页**：https://claude-gauge.earthonline.site （HTTP 200）。已按 **EarthOnline / AISelf v0.6 设计语言换皮**（宋体/Fraunces 衬线 + 光谱点缀），字体**自托管、零第三方请求**。形态与**发布流程见 §9**（注意：部署必须带上 `site/fonts/` + `site/favicon.*`）。
-  - **品牌 logo（新增，2026-06）**：分段光谱**仪表盘** logo（内联 SVG `#logo`，∞ 标记的「仪表」同胞），上导航品牌 + 页脚品牌 + favicon 均已用；README（双语）顶部加 `<picture>` logo（明暗主题切 PNG）。**菜单栏 mock 仍单色 `#dial`**（演示变色卖点，未动）。资产见 §8、细节见 §9.1。⚠️ **logo 改动尚未发布**——下次 deploy 才会上线（带上 `site/favicon.*`）。
+  - **品牌 logo（新增，2026-06）**：分段光谱**仪表盘** logo（内联 SVG `#logo`，∞ 标记的「仪表」同胞），上导航品牌 + 页脚品牌 + favicon 均已用；README（双语）顶部加 `<picture>` logo（明暗主题切 PNG）。**菜单栏 mock 仍单色 `#dial`**（演示变色卖点，未动）。资产见 §8、细节见 §9.1。✅ **已发布**（commit `97e9201` 推 origin/main；落地页已 deploy 上线，`/favicon.svg`·`/favicon.png` 同源 200）。
 - **开源仓库**：https://github.com/EarthOnlineDev/claude-gauge （PUBLIC，`HEAD == origin/main`，工作区干净已推送）
 - **运行时**：launchd 任务 `dev.earthonline.claude-gauge` 已加载运行；`~/.cache/claude-gauge/cache.json` 数据新鲜；SwiftBar 插件已装。
 - **安装一致性**：三个已安装文件与 repo **字节级一致**（经审计 `diff` 零差异）。
@@ -108,9 +119,13 @@ ClaudeGauge 是一个 **macOS 菜单栏小工具**，实时、状态感知地显
 功能勾选：
 
 - [x] 渲染层：状态感知信号灯、深浅色自适应、刘海宽度保护、陈旧检测、下拉详情、立即刷新按钮、插件自拉兜底。
-- [x] 数据层：LaunchAgent 自适应节流、原子写、**token 零额度自愈续命**。
+- [x] **① 随 Claude 显隐**：Claude（桌面端或命令行）没在用时菜单栏项隐藏（输出空 → SwiftBar 隐藏），重开/起会话自动重现；带 120s linger 抹平 `claude -p` 闪烁；渲染层 + 数据层对称门控，只查进程/App、不读内容（`docs/ARCHITECTURE.md` §4.0）。
+- [x] 数据层：LaunchAgent 自适应节流、原子写、**token 零额度自愈续命**、随 Claude 暂停轮询（①）。
 - [x] 桥接层：CC statusLine 即时写 `live.json`（可选增强；纯本地、零网络、零额度）。
-- [x] 安装 / 卸载脚本：`install.sh` 装 SwiftBar（如缺）、铺组件、写并加载 LaunchAgent、首拉数据；`uninstall.sh` 反向清理且不碰 CC 凭证与数据。
+- [x] 安装 / 卸载脚本：`install.sh` 装 SwiftBar（如缺）、铺组件、写并加载 LaunchAgent、首拉数据、**装稳定卸载脚本到 `~/.claude/`（②）**；`uninstall.sh` 反向清理且不碰 CC 凭证与数据。
+- [x] **② 菜单卸载入口**：下拉 `管理 ▸ 卸载 ClaudeGauge…` 子菜单（装了稳定卸载脚本才显示），在 Terminal 里可见地跑卸载；卸载脚本与 clone 解绑、自删干净（`docs/ARCHITECTURE.md` §8.6）。
+- [x] 提醒层（可选 · opt-in，commit `52db7f9`）：CC `Stop`/`Notification(permission_prompt)` hook 触发「有新发现」彩虹态；左键拉回会话载体 + 熄灭；`alert/install-alerts.sh` 装/卸（默认不装）。**绝不读对话/代码**（详见 §2.4 / `docs/ARCHITECTURE.md` §8.5）。
+- [x] **⑤ 提醒层面向会话载体**：`session_host()` 走进程祖先链认出会话宿主（终端 App / 桌面端），点击回到正确载体（修复终端会话点彩虹跳错 App 的旧 bug）；只读进程元数据（`docs/ARCHITECTURE.md` §8.5）。
 
 ### 已安装组件清单
 
@@ -119,9 +134,13 @@ ClaudeGauge 是一个 **macOS 菜单栏小工具**，实时、状态感知地显
 | 续命/刷新脚本 | `~/.claude/claude-gauge-refresh.sh` | `refresher/claude-gauge-refresh.sh` |
 | SwiftBar 插件 | `~/.swiftbar/claude-gauge.15s.sh` | `plugin/claude-gauge.15s.sh` |
 | statusline 桥接 | `~/.claude/claude-gauge-statusline.py` | `bridge/claude-gauge-statusline.py` |
+| 提醒脚本（可选 · opt-in） | `~/.claude/claude-gauge-alert.py` | `alert/claude-gauge-alert.py` |
+| 稳定卸载脚本（②） | `~/.claude/claude-gauge-uninstall.sh` | `uninstall.sh`（由 `install.sh:29` 拷入，与 clone 解绑） |
 | LaunchAgent plist | `~/Library/LaunchAgents/dev.earthonline.claude-gauge.plist` | `install.sh` 内联生成 |
 
 运行时依赖仅：系统自带 `python3` + `security`（已无 `claude` CLI 依赖）。
+
+> **提醒层是独立 opt-in 模块**：装 `~/.claude/claude-gauge-alert.py` 并合并 hook 用专门的 `alert/install-alerts.sh`（**不在** 主 `install.sh` 里，默认不装）。`bash alert/install-alerts.sh` 安装、`bash alert/install-alerts.sh --uninstall` 卸载——把 `Stop` + `Notification(permission_prompt)` 两条 hook **幂等**合并进 `~/.claude/settings.json`（改前先备份、回解析校验、原子写）；卸载只删 command 含 `claude-gauge-alert.py` 的条目，用户已有的其它 hook 原封不动。
 
 ### 最近一次关键变更：`claude -p` → 零额度 OAuth 续命
 
@@ -145,8 +164,8 @@ ClaudeGauge 是一个 **macOS 菜单栏小工具**，实时、状态感知地显
 
 > **非目标 · 阈值通知（刻意不做）**：落地页曾出现过"跨过 75% / 90% 弹原生 macOS 通知"的对外文案，但这**从来不是需求、代码也从未实现**——本次已把该虚假声明从站点撤除。产品方明确不要这个功能：信号靠菜单栏变色（够用近黑 / 75% 橙 / 90% 红）+ 诚实陈旧变灰来传达，不弹系统通知。**请勿再加回该声明，也不要实现它。**
 >
-> **进行中（另一开发线，勿动）**：另有一条开发线在做「**消息完成提醒**」——插件标题栏的 attention / 彩虹图标逻辑（`~/.cache/claude-gauge/attention.json` + `ack.json` 层）和新建的 `alert/` 目录、`~/.claude/claude-gauge-alert.py`。该功能**尚未提交**（工作区里 `plugin/claude-gauge.15s.sh` 的 M 与 `alert/` 即是它），由那条线负责定稿。落地页相关改动与其**无关、未触碰**——接手时请勿误删/误提交这些未完成文件。
-- [ ] **`kc_account()` 解析健壮性**（`refresher/claude-gauge-refresh.sh:34-41`）：当前在标准 CC 安装上正确（解析出的 acct == `$USER`）。残余风险：若某机器 keychain 的 acct ≠ `$USER` 且文本解析失败，回退用 `$USER` 写回可能在错误 account 下**新建第二个钥匙串项**。改进：解析失败时**宁可不写也不猜 `$USER`**，或直接复用 `kc_read()` 成功时的 acct。低概率、不紧急。
+> **完成提醒 / 彩虹层（可选 · opt-in，已上线）**：「有新发现」提醒层已实现并提交（commit `52db7f9`）——插件标题栏的 attention / 彩虹逻辑（`~/.cache/claude-gauge/attention.json` + `ack.json`）+ `alert/` 目录（`claude-gauge-alert.py` / `install-alerts.sh` / `build-menubar-icons.sh`）+ 运行时 `~/.claude/claude-gauge-alert.py`。它**只对 CC 自己的 `Stop`/`Notification(permission_prompt)` hook 事件作反应、绝不读对话/代码**，opt-in（默认不装，靠 `alert/install-alerts.sh`）。心智模型见 §2.4、验收见 §7.3、完整契约见 `docs/ARCHITECTURE.md` §8.5。落地页是否讲述本功能由另一独立任务负责，与本文档无关。
+- [ ] **`kc_account()` 解析健壮性**（`refresher/claude-gauge-refresh.sh:43-50`）：当前在标准 CC 安装上正确（解析出的 acct == `$USER`）。残余风险：若某机器 keychain 的 acct ≠ `$USER` 且文本解析失败，回退用 `$USER` 写回可能在错误 account 下**新建第二个钥匙串项**。改进：解析失败时**宁可不写也不猜 `$USER`**，或直接复用 `kc_read()` 成功时的 acct。低概率、不紧急。
 - [ ] **文档补充**：`refresh` 测试钩子即使 token 还新鲜也会强制 rotate（烧掉一次轮换，但 CC 内存里的 access_token 仍有效到真实过期、不会登出）——在 §7.3 或脚本注释里点明。
 - [ ] **用量趋势图**：现在只有当前快照。可在 `cache.json` 旁追加轻量时序日志（append-only），在下拉里画 5h / 7d 趋势 sparkline。
 - [ ] **可配置项**：阈值（75/90）、节流间隔、是否显示周窗口，目前都硬编码在脚本里。抽到 `~/.cache/claude-gauge/config.json` 或环境变量。
@@ -202,6 +221,13 @@ cat ~/.cache/claude-gauge/live.json
 - **深浅色自适应**：切换系统外观（浅 ↔ 深），确认够用态文字颜色随之变化、保持可读。
 - **刘海宽度**：在带刘海的 Mac 上确认标题不会被吞（开 `extra_usage` 时 `+$` 是否被正确省略）。
 - **token 自愈**：跑 `bash ~/.claude/claude-gauge-refresh.sh refresh` 强制续命，确认钥匙串 token 轮换（尾位变）、`mcpOAuth` 等其余字段保留、cache 随即刷新；零额度（不触发任何模型推理）。
+- **① 随 Claude 显隐**：关掉 Claude 桌面端**且**无任何 `claude` 命令行会话在跑 → 等 ≤15-30s（SwiftBar 周期 + linger 120s 过后），菜单栏图标**消失**；重开桌面端或起一个 `claude` 会话 → ≤15s 图标**重现**，数据 ≤30s 恢复新鲜。手动核对：Claude 没在用时跑 `bash ~/.swiftbar/claude-gauge.15s.sh` 应**输出为空**（被 `_active()` 早退）。只查进程/App，不读内容。
+- **② 菜单卸载**：装好后下拉底部应有 `管理 ▸ 卸载 ClaudeGauge…`（前提 `~/.claude/claude-gauge-uninstall.sh` 存在）。点击它应**在 Terminal 里可见地**跑卸载脚本（`terminal=true`），即使原 clone 目录已删也能卸载（脚本已拷到 `~/.claude/`，与 clone 解绑）。
+- **完成提醒层（可选 · opt-in，先 `bash alert/install-alerts.sh` 装）**：
+  - **离场点亮**：切到别的 App（不在会话载体前台），让某个 CC 会话跑到一个回合结束（`Stop`）或触发一次需授权（`permission_prompt`）——菜单栏表盘几秒内变**彩虹**（数字仍是额度色）。也可手动模拟：`/usr/bin/python3 ~/.claude/claude-gauge-alert.py event stop` 后跑 `bash ~/.swiftbar/claude-gauge.15s.sh`，首行应含 `image=…`（彩虹位图）。
+  - **⑤ 点击回到会话载体**：**终端会话**完成后点彩虹 → 应回到运行 CC 的那个**终端 App**（Terminal/iTerm/VSCode 等），不是桌面端；**桌面会话**完成后点彩虹 → 回到桌面端。点击后彩虹随即熄灭（写了 `ack.json`）。也可回到对应载体前台等下一次 15s 重画自动熄灭。手动核对：`cat ~/.cache/claude-gauge/attention.json` 应有 `host` 字段为对应载体 bundle id。
+  - **未装零影响**：没装这层时 `~/.cache/claude-gauge/attention.json` 不存在，`bash ~/.swiftbar/claude-gauge.15s.sh` 的输出应与装提醒层前**逐字节一致**（彩虹分支全程短路）。
+  - **卸载只删自己**：`bash alert/install-alerts.sh --uninstall` 后，`~/.claude/settings.json` 里仅 command 含 `claude-gauge-alert.py` 的 hook 条目被移除、用户其它 hook 原封不动（卸载前后 `diff` settings.json 只差我们那条），`~/.claude/claude-gauge-alert.py` 删除。
 
 ### 7.4 卸载验收
 
@@ -209,7 +235,9 @@ cat ~/.cache/claude-gauge/live.json
 ./uninstall.sh
 ```
 
-确认：LaunchAgent 卸载、插件与 `~/.claude` 下两个脚本删除、`~/.cache/claude-gauge` 删除；**Claude Code 凭证与数据未被触碰**（`statusLine` 若手动加过需用户自行从 `settings.json` 移除）。
+确认：LaunchAgent 卸载、插件与 `~/.claude` 下的刷新/桥接脚本删除、`~/.cache/claude-gauge` 删除、稳定卸载脚本 `~/.claude/claude-gauge-uninstall.sh` 自删（②）；**Claude Code 凭证与数据未被触碰**（`statusLine` 若手动加过需用户自行从 `settings.json` 移除；提醒层脚本 `claude-gauge-alert.py` 与其 hook 克制起见不动，需单独卸载——见下）。
+
+> **提醒层单独卸载**：主 `uninstall.sh` **不碰** `settings.json` 里的 hook，也不删 `~/.claude/claude-gauge-alert.py`（保持克制、不动用户的 hooks）。装过提醒层的话，用 `bash alert/install-alerts.sh --uninstall` 单独移除：它只删 command 含 `claude-gauge-alert.py` 的 hook 条目并删 alert 脚本，`attention.json`/`ack.json` 随 `~/.cache/claude-gauge` 一并清理或手动删。
 
 ---
 
@@ -220,7 +248,10 @@ cat ~/.cache/claude-gauge/live.json
 | `plugin/claude-gauge.15s.sh` | 渲染层，SwiftBar 插件（装到 PluginDirectory） |
 | `refresher/claude-gauge-refresh.sh` | 数据层，LaunchAgent 刷新器（装到 `~/.claude/`） |
 | `bridge/claude-gauge-statusline.py` | 桥接层，CC statusLine 命令（装到 `~/.claude/`） |
-| `install.sh` / `uninstall.sh` | 安装 / 卸载 |
+| `alert/claude-gauge-alert.py` | 提醒层（可选 · opt-in），CC `Stop`/`Notification` hook + 左键点击入口（装到 `~/.claude/`；详见 §2.4 / ARCHITECTURE §8.5） |
+| `alert/install-alerts.sh` | 提醒层 opt-in 装/卸：合并/移除 `settings.json` 里的 Stop+Notification hook（`--uninstall` 反向） |
+| `alert/build-menubar-icons.sh` | 构建期：用 `rsvg-convert`（`brew install librsvg`）从 `docs/logo.svg` 渲 5 张菜单栏图标（OK/WARN/CRIT/STALE/RAINBOW）并输出 base64（已内嵌进插件 `ICON_*` 常量，仅重生成图标时本机用；运行期零依赖） |
+| `install.sh` / `uninstall.sh` | 安装 / 卸载（核心三层；不碰提醒层） |
 | `site/index.html` | 落地页（单文件静态站，EarthOnline 换皮；发布见 §9） |
 | `site/fonts/*.woff2` | 落地页自托管字体（Fraunces / JetBrains Mono / Noto Serif SC 子集；零第三方） |
 | `site/vercel.json` | 落地页 Vercel 配置（安全 headers / cleanUrls） |
@@ -230,6 +261,11 @@ cat ~/.cache/claude-gauge/live.json
 | `~/.cache/claude-gauge/cache.json` | 后台 API 数据（权威） |
 | `~/.cache/claude-gauge/live.json` | CC 桥接即时数据 |
 | `~/.cache/claude-gauge/refresh-state.json` | 刷新器节流状态 |
+| `~/.cache/claude-gauge/seen.json` | ①「最近在用」时间戳 `{ts}`（随 Claude 显隐 + linger；渲染层/数据层/提醒层写，渲染层读） |
+| `~/.cache/claude-gauge/attention.json` | 提醒层未读事件 `{ts, event, front, host}`（可选 · 装提醒层才有；`host`=会话宿主载体 ⑤） |
+| `~/.cache/claude-gauge/ack.json` | 提醒层已读标记 `{ts}`（可选 · 装提醒层才有） |
+| `~/.claude/claude-gauge-alert.py` | 提醒层运行时脚本（可选 · 装提醒层才有） |
+| `~/.claude/claude-gauge-uninstall.sh` | 稳定卸载脚本（②，与 clone 解绑；菜单「管理▸卸载」+ 命令行都指它，`uninstall.sh` 末尾自删） |
 | `~/Library/LaunchAgents/dev.earthonline.claude-gauge.plist` | LaunchAgent 定义 |
 
 ---

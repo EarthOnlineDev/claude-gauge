@@ -16,6 +16,15 @@ CLIENT_ID="9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 TOKEN_URL="https://platform.claude.com/v1/oauth/token"
 UA="claude-cli/1.0.119 (external, cli)"
 SEC="/usr/bin/security"; SERVICE="Claude Code-credentials"
+# ① Claude 没在用（非强制）→ 不轮询、不续命、直接退出（菜单栏侧自行隐藏）。仅查进程/App，不读内容。
+def _claude_running():
+    for cmd in (["/usr/bin/lsappinfo","find","bundleID=com.anthropic.claudefordesktop"],["/usr/bin/pgrep","-x","claude"]):
+        try:
+            if subprocess.run(cmd,capture_output=True,text=True,timeout=2).stdout.strip(): return True
+        except Exception: pass
+    return False
+if os.environ.get("CQ_FORCE")!="1" and os.environ.get("CQ_REFRESH")!="1" and not _claude_running():
+    raise SystemExit(0)
 
 def load(p,d):
     try: return json.load(open(p))

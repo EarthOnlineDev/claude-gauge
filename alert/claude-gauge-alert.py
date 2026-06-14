@@ -14,6 +14,47 @@ ATTN  = os.path.join(CACHE, "attention.json")
 ACK   = os.path.join(CACHE, "ack.json")
 CLAUDE_BUNDLE = "com.anthropic.claudefordesktop"
 PLUGIN_NAME   = "claude-gauge.15s.sh"
+SEEN  = os.path.join(CACHE, "seen.json")     # ① Claude 最近在用时间戳；event 时顺带 bump，让彩虹在 linger 窗口内不被 ① 隐藏
+_SHELLS = ("zsh", "bash", "sh", "dash", "fish", "tcsh", "csh", "login", "launchd", "python", "python3", "node")
+
+
+def _ps(pid, field):
+    try:
+        return subprocess.run(["/bin/ps", "-o", field + "=", "-p", str(pid)],
+                              capture_output=True, text=True, timeout=2).stdout.strip()
+    except Exception:
+        return ""
+
+
+def session_host():
+    """走进程祖先链认出本次会话的宿主 App bundle：终端会话→终端 App，桌面会话→Claude.app。
+    仅读进程元数据(ps/defaults)，不弹授权、绝不读对话/代码/会话路径。认不出 → None。"""
+    pid = os.getpid()
+    for _ in range(25):
+        try:
+            pid = int(_ps(pid, "ppid") or "0")
+        except Exception:
+            break
+        if pid <= 1:
+            break
+        exe = _ps(pid, "comm")
+        if not exe or "/claude-code/" in exe:                 # 跳过 claude CLI 自身的 .app 包装
+            continue
+        if os.path.basename(exe).lstrip("-") in _SHELLS:      # 跳过 shell / 解释器
+            continue
+        i = exe.rfind(".app/")
+        app = exe[:i + 4] if i != -1 else (exe if exe.endswith(".app") else None)
+        if not app:
+            continue
+        try:
+            bid = subprocess.run(["/usr/bin/defaults", "read",
+                                  os.path.join(app, "Contents", "Info"), "CFBundleIdentifier"],
+                                 capture_output=True, text=True, timeout=2).stdout.strip()
+        except Exception:
+            bid = ""
+        if bid:
+            return bid
+    return None
 
 
 def awrite(path, obj):
@@ -62,13 +103,23 @@ def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
     if mode == "event":
         ev = sys.argv[2] if len(sys.argv) > 2 else "stop"   # stop | permission
-        # 注意：不读 sys.stdin。点亮只依赖 (事件名 + 当前前台)。
-        awrite(ATTN, {"ts": time.time(), "event": ev, "front": front_bundle()})
+        # 注意：不读 sys.stdin。点亮只依赖 (事件名 + 当前前台 + 会话宿主)。
+        now = time.time()
+        awrite(ATTN, {"ts": now, "event": ev, "front": front_bundle(), "host": session_host()})
+        awrite(SEEN, {"ts": now})    # ① 喂 linger：刚完成 → 菜单栏在 linger 窗口内必显示（含彩虹）
         ping_refresh()
     elif mode == "open":
-        # 左键点击：拉起 Claude 桌面 App，并确认（写 ack）让彩虹熄灭。
+        # 左键点击：回到会话所在的载体（终端会话→终端、桌面会话→桌面端），并写 ack 让彩虹熄灭。
+        att = {}
         try:
-            subprocess.run(["/usr/bin/open", "-b", CLAUDE_BUNDLE], timeout=5)
+            att = json.load(open(ATTN)) or {}
+        except Exception:
+            att = {}
+        target = att.get("host") or att.get("front") or CLAUDE_BUNDLE
+        if target == "unknown":
+            target = CLAUDE_BUNDLE
+        try:
+            subprocess.run(["/usr/bin/open", "-b", target], timeout=5)
         except Exception:
             pass
         awrite(ACK, {"ts": time.time()})
