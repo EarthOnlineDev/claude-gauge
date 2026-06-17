@@ -17,7 +17,7 @@
 
 - **目标 = Claude 桌面 App**（`com.anthropic.claudefordesktop`）；点击拉起 `open -b com.anthropic.claudefordesktop`。
 - **彩虹只染图标**（gauge 表盘），**百分比数字仍保留额度三色**（黑/橙/红）——两个信号共存，不遮蔽额度告急。
-- **触发源**：Claude Code 的 `Stop`（一个回合完成）+ `Notification`/`permission_prompt`（卡住等你授权）。**不含 idle**（与"完成"重复）。
+- **触发源**：Claude Code 的 `Stop`（一个回合完成）+ `Notification`/`permission_prompt`（终端模式等授权）+ `PermissionRequest`（桌面端等授权的真实触发点）。**不含 idle**（与"完成"重复）。
 - **只关注「有/无」未读**，不关注是哪个会话、几个会话。
 - **交互**：有新发现时**左键点图标 = 拉起 Claude + 熄灭彩虹**（恢复常态）；**右键 = 照常打开下拉**（额度详情/刷新/退出）。没有新发现时左键 = 照常开下拉。
 - **形态**：第 4 层，**默认开**（随 `install.sh` 自动启用）；**无 `attention.json` 时（旧装/异常/已关），菜单栏与现在逐字节一致**。（2026-06-16 更新：产品方改为默认开——这是核心价值，没有理由让用户多跑一条命令；落地实现见 `install.sh` 第 6 步 + `uninstall.sh` 对称移除。`alert/install-alerts.sh` 仍是可复用机制 + 独立开关。）

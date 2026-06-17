@@ -46,7 +46,31 @@ PY
 rm -f "$HOME/.claude/claude-gauge-alert.py"
 
 rm -rf "$HOME/.cache/claude-gauge"
-open "swiftbar://refreshallplugins" 2>/dev/null || true
-echo "✓ ClaudeGauge 已卸载（菜单栏 / 后台刷新器 / 桥接 / 完成提醒 hook / 缓存）。未触碰 Claude Code 的凭证与任何对话数据。"
+
+# SwiftBar 宿主清理：ClaudeGauge 是唯一插件时彻底清干净（退进程 + 删开机自启登录项 + 卸掉安装时 brew 装的 SwiftBar.app）。
+# 唯一例外——你还有别的 SwiftBar 插件：删了 SwiftBar/登录项会害那些插件起不来，故保留并明示（见 tasks/lessons.md L12）。
+if [ -d "$PLUGIN_DIR" ]; then
+  OTHER_PLUGINS=$(find "$PLUGIN_DIR" -maxdepth 1 -type f ! -name '.*' 2>/dev/null | wc -l | tr -d ' ')
+else
+  OTHER_PLUGINS=0   # 插件目录不存在（自定义目录失效/已删）→ 视作无其它插件，避免 find 非零退出被 set -e 中断卸载
+fi
+if [ "${OTHER_PLUGINS:-0}" = "0" ]; then
+  osascript -e 'tell application "SwiftBar" to quit' 2>/dev/null || true
+  pkill -x SwiftBar 2>/dev/null || true
+  osascript -e 'tell application "System Events" to if exists login item "SwiftBar" then delete login item "SwiftBar"' 2>/dev/null || true
+  SB_MSG="SwiftBar 已退出、开机自启（登录项）已移除"
+  if command -v brew >/dev/null 2>&1 && brew list --cask swiftbar >/dev/null 2>&1; then
+    if brew uninstall --cask swiftbar >/dev/null 2>&1; then SB_MSG="$SB_MSG、SwiftBar.app 已卸载"
+    else SB_MSG="$SB_MSG（SwiftBar.app 自动卸载失败，可手动跑 brew uninstall --cask swiftbar）"; fi
+  else
+    SB_MSG="$SB_MSG（SwiftBar.app 非 brew 安装，未自动删除——如需可手动从 /Applications 移除）"
+  fi
+else
+  open "swiftbar://refreshallplugins" 2>/dev/null || true
+  SB_MSG="检测到你还有其它 SwiftBar 插件（$OTHER_PLUGINS 个）→ 保留 SwiftBar 与开机自启给它们用，仅移除本插件"
+fi
+
+echo "✓ ClaudeGauge 已卸载（菜单栏 / 后台刷新器 / 桥接 / 完成提醒 hook / 缓存 / 开机自启）。未触碰 Claude Code 的凭证与任何对话数据。"
+echo "  · $SB_MSG。"
 echo "  · 如加过 statusLine：请自行从 ~/.claude/settings.json 移除那一行（这一行是你手动加的，本卸载不替你删）。"
 rm -f "$HOME/.claude/claude-gauge-uninstall.sh" 2>/dev/null || true   # ② 自删装好的副本，卸得干净

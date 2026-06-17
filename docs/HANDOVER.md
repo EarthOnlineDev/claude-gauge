@@ -222,6 +222,7 @@ cat ~/.cache/claude-gauge/live.json
 - **刘海宽度**：在带刘海的 Mac 上确认标题不会被吞（开 `extra_usage` 时 `+$` 是否被正确省略）。
 - **token 自愈**：跑 `bash ~/.claude/claude-gauge-refresh.sh refresh` 强制续命，确认钥匙串 token 轮换（尾位变）、`mcpOAuth` 等其余字段保留、cache 随即刷新；零额度（不触发任何模型推理）。
 - **① 随 Claude 显隐**：关掉 Claude 桌面端**且**无任何 `claude` 命令行会话在跑 → 等 ≤15-30s（SwiftBar 周期 + linger 120s 过后），菜单栏图标**消失**；重开桌面端或起一个 `claude` 会话 → ≤15s 图标**重现**，数据 ≤30s 恢复新鲜。手动核对：Claude 没在用时跑 `bash ~/.swiftbar/claude-gauge.15s.sh` 应**输出为空**（被 `_active()` 早退）。只查进程/App，不读内容。
+- **① 续 · SwiftBar 开机自启（重启后 gauge 仍随 Claude 显隐）**：`./install.sh`（step 5b）应把 SwiftBar 设为登录项——核对 `osascript -e 'tell application "System Events" to exists login item "SwiftBar"'` 返回 `true`，或 `系统设置▸通用▸登录项` 里有 SwiftBar。**关机/重启/重新登录后 SwiftBar 自动起来**，gauge 照常随 Claude 显隐；否则「随 Claude 显隐」逻辑在插件里、没宿主进程执行就永不出现（**实测断电后踩过，见 `tasks/lessons.md`**）。
 - **② 菜单卸载**：装好后下拉底部应有 `管理 ▸ 卸载 ClaudeGauge…`（前提 `~/.claude/claude-gauge-uninstall.sh` 存在）。点击它应**在 Terminal 里可见地**跑卸载脚本（`terminal=true`），即使原 clone 目录已删也能卸载（脚本已拷到 `~/.claude/`，与 clone 解绑）。
 - **完成提醒层（默认开 · 随 `./install.sh` 自动启用；也可单独 `bash alert/install-alerts.sh` 装）**：
   - **install.sh 默认启用**：跑 `./install.sh` 后，`~/.claude/settings.json` 的 `hooks` 里应出现 command 含 `claude-gauge-alert.py` 的 `Stop` / `Notification(permission_prompt)` / `PermissionRequest` 三条；用户原有的任何 hook **原封不动**（装前后 `diff` settings.json 只多我们这三条 + 备份文件）。若 settings.json 缺失/损坏，install.sh 会打印一条 `warn` 跳过、菜单栏主功能仍装成（非致命）。
@@ -236,9 +237,9 @@ cat ~/.cache/claude-gauge/live.json
 ./uninstall.sh
 ```
 
-确认：LaunchAgent 卸载、插件与 `~/.claude` 下的刷新/桥接脚本删除、`~/.cache/claude-gauge` 删除、稳定卸载脚本 `~/.claude/claude-gauge-uninstall.sh` 自删（②，`uninstall.sh:52`）；**提醒层对称移除**——`settings.json` 里 command 含 `claude-gauge-alert.py` 的 hook 条目被删、`~/.claude/claude-gauge-alert.py` 删除（见下）；**Claude Code 凭证与数据未被触碰、用户其它 hook 原封不动**（`statusLine` 若手动加过需用户自行从 `settings.json` 移除——`uninstall.sh:51` 会提示，本卸载不替你删）。
+确认：LaunchAgent 卸载、插件与 `~/.claude` 下的刷新/桥接脚本删除、`~/.cache/claude-gauge` 删除、稳定卸载脚本 `~/.claude/claude-gauge-uninstall.sh` 自删（②，`uninstall.sh:72`）；**提醒层对称移除**——`settings.json` 里 command 含 `claude-gauge-alert.py` 的 hook 条目被删、`~/.claude/claude-gauge-alert.py` 删除（见下）；**SwiftBar 宿主清理**——若 ClaudeGauge 是唯一插件则退出 SwiftBar + 移除开机自启登录项 + `brew uninstall --cask swiftbar`（彻底清干净），若你还有别的 SwiftBar 插件则保留给它们用、只移除本插件；**Claude Code 凭证与数据未被触碰、用户其它 hook 原封不动**（`statusLine` 若手动加过需用户自行从 `settings.json` 移除——`uninstall.sh:71` 会提示，本卸载不替你删）。
 
-> **提醒层卸载**：主 `uninstall.sh` 用一段**自包含、不依赖 repo 仍在**的内联 python 块（`uninstall.sh` 约 :9–:49）对称移除——只剥掉 `Stop`/`Notification`/`PermissionRequest` 里 command 含 `claude-gauge-alert.py` 的 hook 条目（先备份、回解析校验、原子写、绝不动用户其它 hook），再 `rm -f ~/.claude/claude-gauge-alert.py`（非致命：settings.json 异常时只提示不阻断）；`attention.json`/`ack.json` 随 `~/.cache/claude-gauge` 一并清理。也可单独 `bash alert/install-alerts.sh --uninstall` 达成同样效果。
+> **提醒层卸载**：主 `uninstall.sh` 用一段**自包含、不依赖 repo 仍在**的内联 python 块（`uninstall.sh` 约 :9–:46）对称移除——只剥掉 `Stop`/`Notification`/`PermissionRequest` 里 command 含 `claude-gauge-alert.py` 的 hook 条目（先备份、回解析校验、原子写、绝不动用户其它 hook），再 `rm -f ~/.claude/claude-gauge-alert.py`（非致命：settings.json 异常时只提示不阻断）；`attention.json`/`ack.json` 随 `~/.cache/claude-gauge` 一并清理。也可单独 `bash alert/install-alerts.sh --uninstall` 达成同样效果。
 
 ---
 

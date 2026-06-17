@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **The gauge now survives a reboot / power-off.** SwiftBar (the menu-bar host
+  that runs the plugin) was never registered to launch at login, so after a full
+  shutdown it didn't come back — and because the "show/hide with Claude" logic
+  lives *inside* the plugin, opening Claude couldn't bring the gauge back either
+  (nothing was running to detect Claude). `./install.sh` now registers SwiftBar
+  as a login item (idempotent, non-fatal), so the host is always up and the
+  gauge reappears with Claude as intended. `./uninstall.sh` removes that login
+  item again — and, when ClaudeGauge is SwiftBar's only plugin, also quits
+  SwiftBar and (if SwiftBar was installed via Homebrew) `brew uninstall`s it for
+  a fully clean removal (all kept intact if you run other SwiftBar plugins).
+
 ### Changed
 - **Completion alert is now on by default.** `./install.sh` merges the alert's
   `Stop` / `PermissionRequest` / `Notification` hooks into

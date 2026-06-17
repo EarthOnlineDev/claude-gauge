@@ -55,6 +55,17 @@ pkill -x SwiftBar 2>/dev/null || true
 sleep 2; open -a SwiftBar 2>/dev/null || true
 ok "已拉取首次数据并加载插件"
 
+# 5b. SwiftBar 开机自启 —— 「随 Claude 显隐」的逻辑在插件里，得有 SwiftBar 进程在跑才会被执行。
+#     若不设登录项，关机/重启后 SwiftBar 不会自己回来，开了 Claude 也唤不出 gauge（实测断电后踩过）。
+if osascript >/dev/null 2>&1 <<'OSA'
+tell application "System Events"
+  if not (exists login item "SwiftBar") then make login item at end with properties {path:"/Applications/SwiftBar.app", hidden:false}
+end tell
+OSA
+then ok "SwiftBar 已设为开机自启（关机/重启后菜单栏自动回来）"
+else warn "未能自动设置 SwiftBar 开机自启；可在 系统设置▸通用▸登录项 手动添加 SwiftBar"
+fi
+
 # 6. 完成提醒层（默认开）：复用 alert/install-alerts.sh 把 Stop/PermissionRequest/Notification
 #    hook 幂等合并进 ~/.claude/settings.json（先备份、回解析校验、原子写、绝不动你已有的 hooks）。
 #    非致命：settings.json 缺失/异常时这步安全跳过，绝不拖垮上面的菜单栏主功能；uninstall.sh 会对称移除。

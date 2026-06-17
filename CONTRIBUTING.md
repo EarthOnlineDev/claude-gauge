@@ -15,7 +15,8 @@ single-purpose macOS tool, so contributing is intentionally simple.
 | `plugin/claude-gauge.15s.sh` | Render | SwiftBar plugin, reads cache and draws the menu bar |
 | `refresher/claude-gauge-refresh.sh` | Data | LaunchAgent that polls the usage API and self-heals the token |
 | `bridge/claude-gauge-statusline.py` | Bridge (optional) | Claude Code `statusLine` that writes `live.json` |
-| `install.sh` / `uninstall.sh` | — | Setup / teardown |
+| `alert/claude-gauge-alert.py` + `alert/install-alerts.sh` | Alert (on by default) | Completion / needs-permission events flip the gauge to rainbow; the installer merges its hooks into `settings.json` |
+| `install.sh` / `uninstall.sh` | — | Setup / teardown — also registers/removes the SwiftBar login item and the alert hooks |
 
 Runtime cache lives in `~/.cache/claude-gauge/` (`cache.json`,
 `live.json`, `refresh-state.json`).
@@ -80,7 +81,8 @@ Open an issue and include:
 | `plugin/claude-gauge.15s.sh` | 渲染层 | SwiftBar 插件，读缓存并绘制菜单栏 |
 | `refresher/claude-gauge-refresh.sh` | 数据层 | LaunchAgent，轮询用量 API 并自愈 token |
 | `bridge/claude-gauge-statusline.py` | 桥接层（可选） | Claude Code `statusLine`，写 `live.json` |
-| `install.sh` / `uninstall.sh` | — | 安装 / 卸载 |
+| `alert/claude-gauge-alert.py` + `alert/install-alerts.sh` | 提醒层（默认开） | 完成 / 需授权事件把表盘点成彩虹；安装器把它的 hook 合并进 `settings.json` |
+| `install.sh` / `uninstall.sh` | — | 安装 / 卸载 —— 还会设置/移除 SwiftBar 登录项与提醒层 hook |
 
 运行时缓存在 `~/.cache/claude-gauge/`（`cache.json`、`live.json`、
 `refresh-state.json`）。
