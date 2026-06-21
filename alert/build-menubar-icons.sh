@@ -1,66 +1,60 @@
 #!/usr/bin/env bash
 # 重新生成菜单栏图标的 base64（构建期一次性；产物内嵌在 plugin 的 ICON_* 常量里）。
 #
-# 形状来源 = 品牌 logo `docs/logo.svg`（分段光谱仪表盘，与落地页/favicon 同形），但**描边更细**：
-# 品牌 logo 用粗描边(3.1)适合大尺寸 hero；菜单栏要与 Apple SF 符号同处一栏，必须**减重到 ~1.8**
-# 才不显粗、和原生图标和谐（实测对比定的值，见 tasks/lessons.md）。形状一致、只是更细。
+# 形状来源 = 落地页 **GaugeMark**（设计蓝图的半圆表盘：半圆刻度 + 指针 + 圆心），
+# 与 designonline-ui 换肤后的落地页/HeroLive 表盘**逐路径一致**，确保菜单栏工具与网页 demo 同形。
+#   path 半圆刻度 = M3.6 16.4a8.4 8.4 0 0 1 16.8 0 ; 指针 = M12 16.4 16.6 10.6 ; 圆心 = (12,16.4) r1.7
+# 用 24×24 方形视框（与落地页 GaugeMark 的 viewBox 0 0 24 24 同框），方形渲染→与 demo 取景一致。
+# 描边 2.2（与落地页 GaugeMark 同值；在 18px 显示下有效 ~1.65px，与菜单栏 SF 符号和谐）。
 #
-# 五态各渲一张 @2x PNG，紧裁到表盘外框，再 base64：
-#   ICON_OK    单色蒙版（templateImage 用 alpha，自动随真实菜单栏深浅变黑/白）
-#   ICON_WARN  橙 #C2902E   ICON_CRIT 红 #C0492B   ICON_STALE 灰 #9CA0A2  （= DesignOnline token 值）
-#   ICON_RAINBOW 原样彩虹（紫→红硬分段 + 深针 + 白芯，= 落地页 logo 本体、按菜单栏重量减细）
-#
-# 实测（2026-06，当前 macOS + SwiftBar）：用干净矢量出图时 templateImage 与 image= 在菜单栏【均无框】，
-# 与 sfimage 一样干净（详见 tasks/lessons.md L7/L9）。
+# 五态各渲一张 @2x PNG：
+#   ICON_OK    单色蒙版（templateImage 用 alpha，自动随真实菜单栏深浅变黑/白；RGB 被丢弃）
+#   ICON_WARN  橙 #C2902E   ICON_CRIT 红 #C0492B   ICON_STALE 灰 #9CA0A2   （= DesignOnline token 值）
+#   ICON_RAINBOW 五段光谱渐变弧+针+心（= 落地页 GaugeMark rainbow 本体，身份用）
 #
 # 依赖：仅构建期需要 `rsvg-convert`（`brew install librsvg`）。插件【运行期】只读内嵌 base64，零依赖。
 # 用法：bash alert/build-menubar-icons.sh
 #        → 把末尾打印的 5 个 base64 粘回 plugin/claude-gauge.15s.sh 的 ICON_OK/WARN/CRIT/STALE/RAINBOW。
 set -euo pipefail
 cd "$(dirname "$0")/.."
-SRC="docs/logo.svg"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 command -v rsvg-convert >/dev/null || { echo "需要 rsvg-convert：brew install librsvg" >&2; exit 1; }
 
-# 紧裁视框（只框住表盘，留极小留白），与 plugin 里 ICON_SZ=width=21 height=17 等比
-VB='1.5 1.6 21.0 17.4'
-
-python3 - "$SRC" "$TMP" "$VB" <<'PY'
+python3 - "$TMP" <<'PY'
 import sys
-src_path, tmp, vb = sys.argv[1], sys.argv[2], sys.argv[3]
-# 菜单栏重量（比品牌 logo 细，和 SF 符号和谐）：弧 1.8 / 针 1.44 / 轴 r1.48 / 白芯 r0.66
-ARC_SW, NEEDLE_SW, HUB_R, PIP_R = "1.8", "1.44", "1.48", "0.66"
-ARC = ["#8A43E6","#4FA8F0","#1FA45D","#F4811E","#E8482A"]
+tmp = sys.argv[1]
+SW, HUB_R, VB = "2.2", "1.7", "0 0 24 24"
+ARC    = "M3.6 16.4a8.4 8.4 0 0 1 16.8 0"   # 半圆刻度（= 落地页 GaugeMark）
+NEEDLE = "M12 16.4 16.6 10.6"               # 指针
+SPEC   = ["#8A43E6","#4FA8F0","#1FA45D","#F4811E","#E8482A"]  # 五段神经光谱（hex 不改）
 
-def base():
-    s = open(src_path).read().replace('viewBox="0 0 24 24"', f'viewBox="{vb}"')
-    s = s.replace('stroke-width="3.1"', f'stroke-width="{ARC_SW}"')                 # 弧描边减细
-    s = s.replace('stroke="#1B1B1B" stroke-width="2.4"', f'stroke="#1B1B1B" stroke-width="{NEEDLE_SW}"')  # 针减细
-    s = s.replace('<circle cx="12" cy="12" r="2.3" fill="#1B1B1B"/>', f'<circle cx="12" cy="12" r="{HUB_R}" fill="#1B1B1B"/>')  # 轴缩小
-    s = s.replace('<circle cx="12" cy="12" r="0.85" fill="#FFFFFF"/>', f'<circle cx="12" cy="12" r="{PIP_R}" fill="#FFFFFF"/>')  # 白芯缩小
-    return s
+def svg(defs, stroke):
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{VB}">{defs}'
+            f'<path d="{ARC}" fill="none" stroke="{stroke}" stroke-width="{SW}" stroke-linecap="round"/>'
+            f'<path d="{NEEDLE}" fill="none" stroke="{stroke}" stroke-width="{SW}" stroke-linecap="round"/>'
+            f'<circle cx="12" cy="16.4" r="{HUB_R}" fill="{stroke}"/></svg>')
 
-def solid(color):
-    t = base()
-    for h in ARC: t = t.replace(f'stroke="{h}"', f'stroke="{color}"')
-    t = t.replace('stroke="#1B1B1B"', f'stroke="{color}"').replace('fill="#1B1B1B"', f'fill="{color}"')
-    t = t.replace(f'<circle cx="12" cy="12" r="{PIP_R}" fill="#FFFFFF"/>', '')      # 单色态去白芯，实心轴
-    return t
+def solid(c): return svg("", c)
 
-# 配色对齐 DesignOnline token：ink-900 / warning=amber-700 / danger=red-700 / 过期=text-subtle(ink-500)。
-# 注：ic_ok 在插件里走 templateImage（只用 alpha 蒙版，RGB 被 macOS 丢弃），此色仅作记录。
-open(f"{tmp}/ic_ok.svg","w").write(solid("#1B1B1B"))
-open(f"{tmp}/ic_warn.svg","w").write(solid("#C2902E"))
-open(f"{tmp}/ic_crit.svg","w").write(solid("#C0492B"))
-open(f"{tmp}/ic_stale.svg","w").write(solid("#9CA0A2"))
-open(f"{tmp}/ic_rain.svg","w").write(base())   # 彩虹弧 + 黑针 + 白芯（= 品牌 logo 本体）
+def rainbow():
+    stops = "".join(f'<stop offset="{o}" stop-color="{c}"/>' for o, c in
+                    zip(("0","0.28","0.55","0.78","1"), SPEC))
+    defs = (f'<defs><linearGradient id="g" x1="2" y1="0" x2="22" y2="0" '
+            f'gradientUnits="userSpaceOnUse">{stops}</linearGradient></defs>')
+    return svg(defs, "url(#g)")
+
+open(f"{tmp}/ic_ok.svg","w").write(solid("#1B1B1B"))     # 模板态：alpha 蒙版（色被丢弃）
+open(f"{tmp}/ic_warn.svg","w").write(solid("#C2902E"))   # --color-warning
+open(f"{tmp}/ic_crit.svg","w").write(solid("#C0492B"))   # --color-danger
+open(f"{tmp}/ic_stale.svg","w").write(solid("#9CA0A2"))  # --color-text-subtle
+open(f"{tmp}/ic_rain.svg","w").write(rainbow())          # 五段光谱（身份）
 PY
 
 for n in ok warn crit stale rain; do
-  rsvg-convert -h 40 "$TMP/ic_$n.svg" -o "$TMP/ic_$n.png"   # @2x（显示 21x17 逻辑点）
+  rsvg-convert -w 36 -h 36 "$TMP/ic_$n.svg" -o "$TMP/ic_$n.png"   # @2x（显示 18×18 逻辑点，方形与 demo 同框）
 done
 
-echo "=== 把下面 5 个常量粘回 plugin/claude-gauge.15s.sh ==="
+echo "=== 把下面 5 个常量粘回 plugin/claude-gauge.15s.sh（ICON_SZ 用 width=18 height=18）==="
 for pair in OK:ok WARN:warn CRIT:crit STALE:stale RAINBOW:rain; do
   name="${pair%%:*}"; file="${pair##*:}"
   printf 'ICON_%s="%s"\n' "$name" "$(base64 < "$TMP/ic_$file.png" | tr -d '\n')"
