@@ -167,10 +167,10 @@ def title_line(fh,wk,d,stale=False,armed=False):
     return f"{text} | color={col} image={ICON_CRIT if col==COL_CRIT else ICON_WARN} {ICON_SZ}"
 
 def section(label, icon, u, cd_str, col):
-    print(f"{label} | sfimage={icon} size=12 color={NORMAL}")                       # 标签：默认色(清晰)
-    print(f"{u}% 已用　·　{100-u}% 还剩 | size=14{col}")              # 数字：默认/橙/红（措辞与落地页 demo 一致：数字在前）
+    print(f'{label} | sfimage={icon} size=12 color={NORMAL} font="PingFang SC"')    # 标签：苹方(DS --font-sans)
+    print(f"{u}% 已用　·　{100-u}% 还剩 | size=14 font=Menlo{col}")   # 数字：等宽(DS --font-mono tabular)，措辞数字在前
     print(f"{bar(u)} | font=Menlo size=15{col}")                     # 进度条：放大(主信息)
-    if cd_str: print(f"{cd_str} 后重置 | size=11 color={MUTE}")      # 倒计时：小灰(辅信息)
+    if cd_str: print(f"{cd_str} 后重置 | size=11 color={MUTE} font=Menlo")  # 倒计时：等宽小灰(DS --font-mono)
 
 def render(d,ts):
     age=time.time()-ts; stale=age>STALE_SEC
@@ -182,7 +182,7 @@ def render(d,ts):
         if _ts(att.get("ts")) > _ts((_loadj(ACK) or {}).get("ts")): _awrite_ack(time.time())
     print(title_line(fh,wk,d,stale,_armed() if att else False))
     print("---")
-    print(f"Claude Code 用量 | color={NORMAL} image={ICON_RAINBOW} {ICON_SZ}")      # 标题 + 彩虹表盘（与落地页 demo 下拉头一致）
+    print(f'Claude Code 用量 | color={NORMAL} size=15 font="Songti SC" image={ICON_RAINBOW} {ICON_SZ}')  # 标题宋体(DS --font-serif) + 彩虹表盘（同落地页下拉头）
     if stale:
         print("---")
         if (_loadj(STATE) or {}).get("auth_dead"):                  # 续命被服务端拒：钥匙串令牌失效，唯有重新登录能救（别误导成"用一下就刷新"）
@@ -192,15 +192,15 @@ def render(d,ts):
             print(f"⚠️ 数据已 {int(age//60)} 分钟未更新 | color={COL_WARN}")
             print(f"闲置/限流；用一下 Claude Code 即刷新 | size=11 color={MUTE}")
     print("---")
-    if fh is not None: section("当前 5 小时 · session","clock",_used(fh),_cd5((d.get('five_hour') or {}).get('resets_at')),scol(fh))
+    if fh is not None: section("当前 5 小时 · 会话","clock",_used(fh),_cd5((d.get('five_hour') or {}).get('resets_at')),scol(fh))
     if wk is not None: section("本周 · 7 天","calendar",_used(wk),_cd7((d.get('seven_day') or {}).get('resets_at')),scol(wk))
     extras=[]
     if son is not None: extras.append(f"Sonnet {_used(son)}%")
     if opus is not None: extras.append(f"Opus {_used(opus)}%")
-    if extras: print("---"); print("按模型（本周）　"+" · ".join(extras)+f" | size=11 color={MUTE}")
+    if extras: print("---"); print("按模型（本周）　"+" · ".join(extras)+f" | size=11 color={MUTE} font=Menlo")
     print("---")
     upd=datetime.datetime.fromtimestamp(ts).strftime("%H:%M")
-    print((f"更新于 {upd}（{int(age//60)}分钟前）" if age>=60 else f"更新于 {upd}（刚刚）")+f" | size=11 color={MUTE}")
+    print((f"更新于 {upd}（{int(age//60)}分钟前）" if age>=60 else f"更新于 {upd}（刚刚）")+f" | size=11 color={MUTE} font=Menlo")
     home=os.path.expanduser("~"); print(f"立即刷新（强制拉最新）| shell={home}/.claude/claude-gauge-refresh.sh | param0=force | terminal=false | refresh=true | sfimage=arrow.clockwise")
     un=f"{home}/.claude/claude-gauge-uninstall.sh"                    # ② 菜单卸载入口（装了稳定卸载脚本才显示，子菜单收纳、不污染主下拉）
     if os.path.exists(un):
