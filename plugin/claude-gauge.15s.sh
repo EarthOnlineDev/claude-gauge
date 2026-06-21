@@ -104,7 +104,7 @@ def scol(rem):
     l=_lvl(rem)
     if l==2: return f" color={COL_CRIT}"
     if l==1: return f" color={COL_WARN}"
-    return f" color={NORMAL}"
+    return ""   # 充裕态不强制色：用原生菜单默认 label 色（vibrancy 自适应、清晰，不发灰失真）
 
 # ---- 完成提醒层（默认开）：无 attention.json 时（旧装/异常/已关）_armed 恒 False、渲染与无此层逐字节一致 ----
 def _loadj(p):
@@ -167,7 +167,7 @@ def title_line(fh,wk,d,stale=False,armed=False):
     return f"{text} | color={col} image={ICON_CRIT if col==COL_CRIT else ICON_WARN} {ICON_SZ}"
 
 def section(label, icon, u, cd_str, col):
-    print(f'{label} | sfimage={icon} size=12 color={NORMAL} font="PingFang SC"')    # 标签：苹方(DS --font-sans)
+    print(f'{label} | sfimage={icon} size=12 font="PingFang SC"')                    # 标签：苹方；不强制色→原生菜单清晰色（vibrancy 自适应）
     print(f"{u}% 已用　·　{100-u}% 还剩 | size=14 font=Menlo{col}")   # 数字：等宽(DS --font-mono tabular)，措辞数字在前
     print(f"{bar(u)} | font=Menlo size=15{col}")                     # 进度条：放大(主信息)
     if cd_str: print(f"{cd_str} 后重置 | size=11 color={MUTE} font=Menlo")  # 倒计时：等宽小灰(DS --font-mono)
@@ -182,7 +182,7 @@ def render(d,ts):
         if _ts(att.get("ts")) > _ts((_loadj(ACK) or {}).get("ts")): _awrite_ack(time.time())
     print(title_line(fh,wk,d,stale,_armed() if att else False))
     print("---")
-    print(f'Claude Code 用量 | color={NORMAL} size=15 font="Songti SC" image={ICON_RAINBOW} {ICON_SZ}')  # 标题宋体(DS --font-serif) + 彩虹表盘（同落地页下拉头）
+    print(f'Claude Code 用量 | size=15 font="Songti SC" image={ICON_RAINBOW} {ICON_SZ}')  # 标题宋体 + 彩虹表盘；不强制色→原生菜单清晰色（vibrancy 自适应）
     if stale:
         print("---")
         if (_loadj(STATE) or {}).get("auth_dead"):                  # 续命被服务端拒：钥匙串令牌失效，唯有重新登录能救（别误导成"用一下就刷新"）
