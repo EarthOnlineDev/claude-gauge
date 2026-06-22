@@ -5,8 +5,18 @@ say(){ printf "\033[1;36m▸\033[0m %s\n" "$1"; }
 ok(){  printf "\033[1;32m✓\033[0m %s\n" "$1"; }
 warn(){ printf "\033[1;33m!\033[0m %s\n" "$1"; }
 
-REPO="$(cd "$(dirname "$0")" && pwd)"
 [ "$(uname)" = "Darwin" ] || { echo "ClaudeGauge 仅支持 macOS"; exit 1; }
+
+# 定位源码：本地 clone 直接用；curl|bash 自动 clone 到临时目录
+REPO="$(cd "$(dirname "$0")" && pwd)"
+if [ ! -f "$REPO/plugin/claude-gauge.15s.sh" ]; then
+  say "通过 curl 运行，正在下载最新源码…"
+  REPO="$(mktemp -d)/claude-gauge"
+  git clone --depth 1 https://github.com/EarthOnlineLabs/claude-gauge.git "$REPO"
+  _CLEANUP_REPO="$REPO"
+  trap 'rm -rf "${_CLEANUP_REPO:-}"' EXIT
+  ok "源码就绪"
+fi
 
 # 1. SwiftBar（菜单栏渲染宿主）
 if [ ! -d "/Applications/SwiftBar.app" ]; then
