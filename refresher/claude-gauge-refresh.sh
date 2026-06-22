@@ -94,15 +94,33 @@ try:
     req=urllib.request.Request("https://api.anthropic.com/api/oauth/usage",headers={"Authorization":f"Bearer {tk['accessToken']}","anthropic-beta":"oauth-2025-04-20"})
     j=json.load(urllib.request.urlopen(req,timeout=10))
 except Exception: raise SystemExit(0)
-# ④ 原子写 cache
+# ④ 原子写 cache（优先 limits 数组——官方页面数据源；fallback 旧字段兼容）
 data={}
-for k in ("five_hour","seven_day","seven_day_sonnet","seven_day_opus"):
-    b=j.get(k)
-    if b and b.get("utilization") is not None: data[k]={"utilization":float(b["utilization"]),"resets_at":b.get("resets_at")}
+lim={e["kind"]:e for e in (j.get("limits") or []) if "kind" in e}
+def _pick(lim_kind, legacy_key, scope_model=None):
+    le=lim.get(lim_kind)
+    if le and le.get("percent") is not None: return {"utilization":float(le["percent"]),"resets_at":le.get("resets_at")}
+    b=j.get(legacy_key)
+    if b and b.get("utilization") is not None: return {"utilization":float(b["utilization"]),"resets_at":b.get("resets_at")}
+    return None
+for lk,dk in [("session","five_hour"),("weekly_all","seven_day")]:
+    v=_pick(lk,dk);
+    if v: data[dk]=v
+for e in (j.get("limits") or []):
+    if e.get("kind")=="weekly_scoped" and e.get("percent") is not None:
+        mn=((e.get("scope") or {}).get("model") or {}).get("display_name","").lower()
+        if mn=="sonnet": data["seven_day_sonnet"]={"utilization":float(e["percent"]),"resets_at":e.get("resets_at")}
+        elif mn=="opus": data["seven_day_opus"]={"utilization":float(e["percent"]),"resets_at":e.get("resets_at")}
+if not data.get("seven_day_sonnet"):
+    v=_pick(None,"seven_day_sonnet");
+    if v: data["seven_day_sonnet"]=v
+if not data.get("seven_day_opus"):
+    v=_pick(None,"seven_day_opus");
+    if v: data["seven_day_opus"]=v
 if j.get("extra_usage"): data["extra_usage"]=j["extra_usage"]
 awrite(CACHE,{"ts":now,"data":data})
 # ⑤ 变化检测（喂给自适应节流，决定下次多快再 poll）
-u5=(j.get("five_hour") or {}).get("utilization"); u7=(j.get("seven_day") or {}).get("utilization")
+u5=(data.get("five_hour") or {}).get("utilization"); u7=(data.get("seven_day") or {}).get("utilization")
 p5,p7=st.get("last_5h"),st.get("last_7d")
 chg_now = (u5 is not None and p5 is not None and abs(u5-p5)>=1) or (u7 is not None and p7 is not None and abs(u7-p7)>=1)
 st.update({"last_poll_ts":now,"last_max_util":max([x for x in (u5,u7) if x is not None],default=None),"last_5h":u5,"last_7d":u7,"changed":chg_now,"auth_dead":False})
