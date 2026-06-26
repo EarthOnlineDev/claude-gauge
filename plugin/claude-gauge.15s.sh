@@ -202,6 +202,12 @@ def render(d,ts):
     if opus is not None: extras.append(f"Opus {_used(opus)}%")
     if extras: print("---"); print("按模型（本周）　"+" · ".join(extras)+f" | size=11 color={MUTE} font=Menlo")
     print("---")
+    # 显示当前读取的组织名（排查多 org 用户数据不匹配）
+    try:
+        _oj=json.load(open(os.path.expanduser("~/.cache/claude-gauge/org.json")))
+        _on=_oj.get("name") or _oj.get("uuid","")
+        if _on: print(f"{_on} | size=10 color={MUTE} font=Menlo")
+    except Exception: pass
     upd=datetime.datetime.fromtimestamp(ts).strftime("%H:%M")
     print((f"更新于 {upd}（{int(age//60)}分钟前）" if age>=60 else f"更新于 {upd}（刚刚）")+f" | size=11 color={MUTE} font=Menlo")
     home=os.path.expanduser("~"); print(f"立即刷新（强制拉最新） ›| shell={home}/.claude/claude-gauge-refresh.sh | param0=force | terminal=false | refresh=true | sfimage=arrow.clockwise")

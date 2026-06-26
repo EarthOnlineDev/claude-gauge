@@ -96,12 +96,13 @@ if not tk or (tk.get("expiresAt") and tk["expiresAt"]/1000 < now): raise SystemE
 # ②b 解析组织 UUID（多组织用户的用量 API 需要显式指定，否则可能返回错误组织的数据）
 def get_org_uuid(access_token):
     cached=load(ORG_CACHE,{})
-    if "ts" in cached and now - cached.get("ts",0) < 86400: return cached.get("uuid")
+    if "ts" in cached and now - cached.get("ts",0) < 86400 and cached.get("name"): return cached.get("uuid")
     try:
         req=urllib.request.Request("https://api.anthropic.com/api/claude_cli/bootstrap",headers={"Authorization":f"Bearer {access_token}","anthropic-beta":"oauth-2025-04-20"})
         bs=json.load(urllib.request.urlopen(req,timeout=10))
-        uuid=(bs.get("oauth_account") or {}).get("organization_uuid") or None
-        awrite(ORG_CACHE,{"uuid":uuid,"ts":now})
+        oa=bs.get("oauth_account") or {}
+        uuid=oa.get("organization_uuid") or None
+        awrite(ORG_CACHE,{"uuid":uuid,"name":oa.get("organization_name"),"type":oa.get("organization_type"),"tier":oa.get("organization_rate_limit_tier"),"ts":now})
         return uuid
     except Exception: return cached.get("uuid")
 org_uuid=get_org_uuid(tk["accessToken"])
