@@ -8,18 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1]
 
 ### Fixed
-- **CG could show *another person's* usage if their Claude credential synced onto
-  your Mac.** All three credential readers (refresher, plugin, diagnostic) looked
-  up the keychain by service name only (`Claude Code-credentials`), without pinning
-  the account. If a second machine's `Claude Code-credentials` item arrived via
-  iCloud Keychain sync or a Migration-Assistant/clone transfer, a service-only
-  lookup could return *that* foreign item — so the menu bar displayed the other
-  account's quota and the diagnostic reported the other account's org. Reads now
-  pin to the local macOS user (`security … -a "$(id -un)"`) first and only fall
-  back to service-only for older CCs that stored the account differently; the
-  refresher's OAuth write-back now targets the exact item it read (never creating
-  a second entry). The diagnostic also lists every same-service keychain item and
-  warns when more than one exists.
+- **CG can no longer display another account's usage — defense in depth.** Two
+  independent gaps could make the menu bar show data that wasn't the logged-in
+  user's:
+  1. *Credential read wasn't pinned to you.* All three readers (refresher,
+     plugin, diagnostic) looked up the keychain by service name only
+     (`Claude Code-credentials`), without an account. If another machine's item
+     arrived via iCloud Keychain sync or a Migration-Assistant/clone transfer, a
+     service-only lookup could return that *foreign* credential. Reads now pin to
+     the local macOS user (`security … -a "$(id -un)"`) first, falling back to
+     service-only only for older CCs that stored the account differently; the
+     OAuth write-back targets the exact item it read (never creating a second
+     entry).
+  2. *Cached data carried no owner identity.* `cache.json`/`org.json` stored the
+     numbers and org without binding them to any account, so a stale or copied
+     cache would be shown verbatim. Every cache write is now stamped with the
+     owning credential's fingerprint (a one-way hash of the access token — never
+     the token itself) and org; the plugin refuses to display any cache whose
+     stamp doesn't match the currently logged-in credential, falling back to a
+     fresh fetch with the real token instead. The refresher re-derives the org
+     per credential and purges usage cache on an account change. Net effect: no
+     matter how another account's credential or cache reaches the machine, a
+     logged-in user only ever sees their own data.
+- The diagnostic lists every same-service keychain item and warns when more than
+  one exists.
 
 ## [Unreleased]
 

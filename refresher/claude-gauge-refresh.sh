@@ -9,7 +9,11 @@
 [ "$1" = "refresh" ] && export CQ_REFRESH=1
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 /usr/bin/python3 <<'PY'
-import json, subprocess, time, os, tempfile, urllib.request, urllib.error
+import json, subprocess, time, os, tempfile, hashlib, urllib.request, urllib.error
+def cred_fp(access_token):
+    """凭证指纹：accessToken 的单向哈希(只取前16位)。用于把缓存绑定到具体账号——
+    绝不存/打印明文 token，只存这个不可逆指纹。与 plugin 里的同名函数必须一致。"""
+    return hashlib.sha256(("cg1:"+(access_token or "")).encode()).hexdigest()[:16]
 CACHE=os.path.expanduser("~/.cache/claude-gauge/cache.json")
 STATE=os.path.expanduser("~/.cache/claude-gauge/refresh-state.json")
 ORG_CACHE=os.path.expanduser("~/.cache/claude-gauge/org.json")
@@ -93,7 +97,13 @@ auth_dead=bool(st.get("auth_dead"))
 # ① 续命：仅临近过期(≤60s)或被强制时（纯鉴权，零额度，不与活跃 CC 抢轮换）
 if blob and tk and tk.get("expiresAt") and (os.environ.get("CQ_REFRESH")=="1" or tk["expiresAt"]/1000 < now+60):
     new,dead=refresh_oauth(blob,kc_acct)
-    if new: tk=new; auth_dead=False
+    if new:
+        tk=new; auth_dead=False
+        # token 轮换后立刻把缓存凭证戳更新到新 token，避免本次 poll 若失败时插件把自己的旧缓存误判为他人数据
+        try:
+            _c=load(CACHE,None)
+            if _c is not None: _c["cred"]=cred_fp(new["accessToken"]); awrite(CACHE,_c)
+        except Exception: pass
     elif dead: auth_dead=True
 # 续命被服务端拒（RT 失效）→ 立刻持久化诚实失败态供菜单栏提示 /login（早于节流/退出；恢复时由成功 poll 收尾清零）
 if auth_dead != bool(st.get("auth_dead")):
@@ -108,16 +118,23 @@ if os.environ.get("CQ_FORCE")!="1" and os.environ.get("CQ_REFRESH")!="1" and now
 if not tk or (tk.get("expiresAt") and tk["expiresAt"]/1000 < now): raise SystemExit(0)
 # ②b 解析组织 UUID（多组织用户的用量 API 需要显式指定，否则可能返回错误组织的数据）
 def get_org_uuid(access_token):
+    fp=cred_fp(access_token)
     cached=load(ORG_CACHE,{})
-    if "ts" in cached and now - cached.get("ts",0) < 86400 and cached.get("name"): return cached.get("uuid")
+    # 仅当 org 缓存属于【当前这份凭证】且未过期才复用——换号/外来同步凭证的旧 org 一律不沿用
+    if cached.get("fp")==fp and now - cached.get("ts",0) < 86400 and cached.get("name"): return cached.get("uuid")
     try:
         req=urllib.request.Request("https://api.anthropic.com/api/claude_cli/bootstrap",headers={"Authorization":f"Bearer {access_token}","anthropic-beta":"oauth-2025-04-20"})
         bs=json.load(urllib.request.urlopen(req,timeout=10))
         oa=bs.get("oauth_account") or {}
         uuid=oa.get("organization_uuid") or None
-        awrite(ORG_CACHE,{"uuid":uuid,"name":oa.get("organization_name"),"type":oa.get("organization_type"),"tier":oa.get("organization_rate_limit_tier"),"ts":now})
+        # 解析出的 org 与旧缓存不同(换号/外来) → 清掉可能属于别账号的用量缓存，绝不让它被显示
+        if cached.get("uuid") and cached.get("uuid")!=uuid:
+            try: os.remove(CACHE)
+            except Exception: pass
+        awrite(ORG_CACHE,{"uuid":uuid,"name":oa.get("organization_name"),"type":oa.get("organization_type"),"tier":oa.get("organization_rate_limit_tier"),"fp":fp,"ts":now})
         return uuid
-    except Exception: return cached.get("uuid")
+    except Exception:
+        return cached.get("uuid") if cached.get("fp")==fp else None  # bootstrap 失败：只在指纹匹配时沿用旧 org，否则不带 org 头
 org_uuid=get_org_uuid(tk["accessToken"])
 # ③ poll（429 限流时重试一次，避免缓存永久卡死——这是测试用户数据不更新的根因）
 j=None
@@ -158,7 +175,8 @@ if not data.get("seven_day_opus"):
     v=_pick(None,"seven_day_opus");
     if v: data["seven_day_opus"]=v
 if j.get("extra_usage"): data["extra_usage"]=j["extra_usage"]
-awrite(CACHE,{"ts":now,"data":data})
+# 盖账号身份戳：org=这份数据属于哪个组织，cred=属于哪份凭证。插件显示前据此核对，对不上不显示别人的数据。
+awrite(CACHE,{"ts":now,"data":data,"org":org_uuid,"cred":cred_fp(tk["accessToken"])})
 # ⑤ 变化检测（喂给自适应节流，决定下次多快再 poll）
 u5=(data.get("five_hour") or {}).get("utilization"); u7=(data.get("seven_day") or {}).get("utilization")
 p5,p7=st.get("last_5h"),st.get("last_7d")
