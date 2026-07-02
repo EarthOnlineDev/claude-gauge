@@ -231,12 +231,10 @@ def read_token():
     except Exception: acct=os.environ.get("USER","")
     try:
         raw=""
-        if acct:  # 先锁本机用户，绝不读 iCloud 同步/机器迁移带进来的他人同名凭证（否则会显示别人的额度）
+        if acct:  # 只读本机用户自己的项，【绝不】退回 service-only——防 iCloud 同步/迁移带进来的他人同名凭证
             raw=subprocess.run(["/usr/bin/security","find-generic-password","-s",SVC,"-a",acct,"-w"],capture_output=True,text=True,timeout=5).stdout
         if not raw.strip():
-            raw=subprocess.run(["/usr/bin/security","find-generic-password","-s",SVC,"-w"],capture_output=True,text=True,timeout=5).stdout
-        if not raw.strip():
-            fp=os.path.expanduser("~/.claude/.credentials.json")
+            fp=os.path.expanduser("~/.claude/.credentials.json")   # CC 的备选存储，在本用户 home 内、属于本人
             if os.path.exists(fp): raw=open(fp).read()
         return json.loads(raw)["claudeAiOauth"]
     except Exception: return None

@@ -42,28 +42,15 @@ def awrite(path,obj):
     fd,tmp=tempfile.mkstemp(dir=dd)
     with os.fdopen(fd,"w") as f: json.dump(obj,f)
     os.replace(tmp,path)
-def _acct_of_service():
-    """service-only 命中项的 acct（pin 取不到时，回写要精确定位到同一条，不另建新项）。"""
-    try:
-        out=subprocess.run([SEC,"find-generic-password","-s",SERVICE],capture_output=True,text=True,timeout=5).stdout
-        for ln in out.splitlines():
-            ln=ln.strip()
-            if ln.startswith('"acct"'): return ln.split('=',1)[1].strip().strip('"')
-    except Exception: pass
-    return None
 def kc_read():
-    """读【本机用户自己】的凭证 blob（含 mcpOAuth），返回 (blob, acct_used)，失败 (None,None)。
-    先按 service+本机用户名 pin —— 防止读到 iCloud 钥匙串同步/机器迁移带进来的【他人】同名项
-    （否则本机会显示别人的额度，已实测踩过）；pin 取不到再退回 service-only，兼容把 acct 存成邮箱等的旧版 CC。
-    acct_used 供续命回写时精确定位同一条。"""
-    if LOCAL_ACCT:
-        try:
-            raw=subprocess.run([SEC,"find-generic-password","-s",SERVICE,"-a",LOCAL_ACCT,"-w"],capture_output=True,text=True,timeout=5).stdout
-            if raw.strip(): return json.loads(raw),LOCAL_ACCT
-        except Exception: pass
+    """读【本机用户自己】的凭证 blob（含 mcpOAuth），返回 (blob, acct)，失败 (None,None)。
+    只按 service+本机用户名读，【绝不】退回 service-only——iCloud 钥匙串同步/机器迁移可能把
+    他人的同名项带进本机钥匙串，service-only 会读到它并显示别人的额度（隐私红线，实测踩过）。
+    读不到 → 诚实失败（缓存变陈旧变灰），宁可不显示也不显示别人的。"""
+    if not LOCAL_ACCT: return None,None
     try:
-        raw=subprocess.run([SEC,"find-generic-password","-s",SERVICE,"-w"],capture_output=True,text=True,timeout=5).stdout
-        if raw.strip(): return json.loads(raw),(_acct_of_service() or LOCAL_ACCT)
+        raw=subprocess.run([SEC,"find-generic-password","-s",SERVICE,"-a",LOCAL_ACCT,"-w"],capture_output=True,text=True,timeout=5).stdout
+        if raw.strip(): return json.loads(raw),LOCAL_ACCT
     except Exception: pass
     return None,None
 def refresh_oauth(blob,acct):

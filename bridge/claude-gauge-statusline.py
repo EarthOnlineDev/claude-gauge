@@ -10,16 +10,17 @@ def _awrite(path, obj):
     with os.fdopen(fd, "w") as f: json.dump(obj, f)
     os.replace(tmp, path)
 def _read_keychain_fp():
-    """现读钥匙串算 token 指纹（纯本地，无网络/无额度）。与 refresher/plugin 的 cred_fp 必须一致。"""
+    """现读钥匙串算 token 指纹（纯本地，无网络/无额度）。与 refresher/plugin 的 cred_fp 必须一致。
+    只读本机用户自己的项，【绝不】退回 service-only——防 iCloud 同步/迁移带进来的他人同名凭证。"""
     try: acct = subprocess.run(["/usr/bin/id","-un"], capture_output=True, text=True, timeout=2).stdout.strip()
     except Exception: acct = os.environ.get("USER","")
-    for args in ((["-a", acct] if acct else []), []):   # 先锁本机用户，取不到再退 service-only
-        try:
-            raw = subprocess.run(["/usr/bin/security","find-generic-password","-s","Claude Code-credentials"]+args+["-w"], capture_output=True, text=True, timeout=2).stdout
-            if raw.strip():
-                at = json.loads(raw)["claudeAiOauth"]["accessToken"]
-                return hashlib.sha256(("cg1:"+at).encode()).hexdigest()[:16]
-        except Exception: pass
+    if not acct: return None
+    try:
+        raw = subprocess.run(["/usr/bin/security","find-generic-password","-s","Claude Code-credentials","-a",acct,"-w"], capture_output=True, text=True, timeout=2).stdout
+        if raw.strip():
+            at = json.loads(raw)["claudeAiOauth"]["accessToken"]
+            return hashlib.sha256(("cg1:"+at).encode()).hexdigest()[:16]
+    except Exception: pass
     return None
 def _cur_fp():
     """给 live.json 盖归属戳，供插件核对这份实时数据属于当前登录账号——防换号后菜单栏显示上个账号的实时额度。

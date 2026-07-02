@@ -15,10 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
      plugin, diagnostic) looked up the keychain by service name only
      (`Claude Code-credentials`), without an account. If another machine's item
      arrived via iCloud Keychain sync or a Migration-Assistant/clone transfer, a
-     service-only lookup could return that *foreign* credential. Reads now pin to
-     the local macOS user (`security … -a "$(id -un)"`) first, falling back to
-     service-only only for older CCs that stored the account differently; the
-     OAuth write-back targets the exact item it read (never creating a second
+     service-only lookup could return that *foreign* credential. All readers
+     (refresher, plugin, statusline bridge) now read **only** the item whose
+     keychain account equals the local macOS user (`security … -a "$(id -un)"`) —
+     there is no service-only fallback at all: if no pinned item exists the gauge
+     honestly goes stale/⚠ instead of ever reading a potentially foreign item.
+     The OAuth write-back targets the exact item it read (never creating a second
      entry).
   2. *Cached data carried no owner identity.* `cache.json`/`live.json` stored the
      numbers without binding them to a credential, so a stale or copied cache
